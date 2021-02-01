@@ -1,0 +1,308 @@
+Company,Sector,GICS Sub-Industry,Ticker,Index
+Accor,Consumer Cyclical,"Hotels, Resorts & Cruise Lines",AC.PA,CAC40
+Air Liquide,Basic Materials,Industrial Gases,AI.PA,CAC40
+Airbus,Industrials,Aerospace & Defense,AIR.PA,CAC40
+ArcelorMittal,Basic Materials,Steel,MT.AS,CAC40
+Atos,Technology,IT Consulting & Other Services,ATO.PA,CAC40
+AXA,Financial Services,Life & Health Insurance,CS.PA,CAC40
+BNP Paribas,Financial Services,Diversified Banks,BNP.PA,CAC40
+Bouygues,Industrials,Construction & Engineering,EN.PA,CAC40
+Capgemini,Technology,IT Consulting & Other Services,CAP.PA,CAC40
+Carrefour,Consumer Defensive,Hypermarkets & Super Centers,CA.PA,CAC40
+Crédit Agricole,Financial Services,Regional Banks,ACA.PA,CAC40
+Danone,Consumer Defensive,Packaged Foods & Meats,BN.PA,CAC40
+Dassault Systèmes,Technology,Application Software,DSY.PA,CAC40
+Engie,Utilities,Gas Utilities,ENGI.PA,CAC40
+EssilorLuxottica,Healthcare,"Apparel, Accessories & Luxury Goods",EL.PA,CAC40
+Hermès,Consumer Cyclical,"Apparel, Accessories & Luxury Goods",RMS.PA,CAC40
+Kering,Consumer Cyclical,"Apparel, Accessories & Luxury Goods",KER.PA,CAC40
+L'Oréal,Consumer Defensive,Personal Products,OR.PA,CAC40
+Legrand,Industrials,Electrical Components & Equipment,LR.PA,CAC40
+LVMH,Consumer Cyclical,"Apparel, Accessories & Luxury Goods",MC.PA,CAC40
+Michelin,Industrials,Tires & Rubber,ML.PA,CAC40
+Orange,Communication Services,Integrated Telecommunication Services,ORA.PA,CAC40
+Pernod Ricard,Consumer Defensive,Distillers & Vintners,RI.PA,CAC40
+PSA,Consumer Cyclical,Automobile Manufacturers,UG.PA,CAC40
+Publicis,Communication Services,Advertising,PUB.PA,CAC40
+Renault,Consumer Cyclical,Automobile Manufacturers,RNO.PA,CAC40
+Safran,Industrials,Aerospace & Defense,SAF.PA,CAC40
+Saint-Gobain,Industrials,Building Products,SGO.PA,CAC40
+Sanofi,Healthcare,Pharmaceuticals,SAN.PA,CAC40
+Schneider Electric,Industrials,Electrical Components & Equipment,SU.PA,CAC40
+Société Générale,Financial Services,Diversified Banks,GLE.PA,CAC40
+Sodexo,Industrials,Restaurants,SW.PA,CAC40
+STMicroelectronics,Technology,Semiconductors,STM.PA,CAC40
+Thales,Industrials,Aerospace & Defense,HO.PA,CAC40
+Total,Energy,Integrated Oil & Gas,FP.PA,CAC40
+Unibail-Rodamco-Westfield,Real Estate,Retail REITs,URW.AS,CAC40
+Veolia,Industrials,Multi-Utilities,VIE.PA,CAC40
+Vinci,Industrials,Construction & Engineering,DG.PA,CAC40
+Vivendi,Communication Services,Movies & Entertainment,VIV.PA,CAC40
+Worldline,Technology,Data Processing & Outsourced Services,WLN.PA,CAC40
+3M Company,Industrials,Industrial Conglomerates,MMM,SP100
+Abbott Laboratories,Health Care,Health Care Equipment,ABT,SP100
+AbbVie Inc.,Health Care,Pharmaceuticals,ABBV,SP100
+Accenture plc,Information Technology,IT Consulting & Other Services,ACN,SP100
+Adobe Systems Inc,Information Technology,Application Software,ADBE,SP100
+Allstate Corp,Financials,Property & Casualty Insurance,ALL,SP100
+Alphabet Inc Class A,Communication Services,Interactive Media & Services,GOOGL,SP100
+Alphabet Inc Class C,Communication Services,Interactive Media & Services,GOOG,SP100
+Altria Group Inc,Consumer Staples,Tobacco,MO,SP100
+Amazon.com Inc.,Consumer Discretionary,Internet & Direct Marketing Retail,AMZN,SP100
+American Express Co,Financials,Consumer Finance,AXP,SP100
+American International Group,Financials,Property & Casualty Insurance,AIG,SP100
+American Tower Corp.,Real Estate,Specialized REITs,AMT,SP100
+Amgen Inc.,Health Care,Biotechnology,AMGN,SP100
+Apple Inc.,Information Technology,"Technology Hardware, Storage & Peripherals",AAPL,SP100
+AT&T Inc.,Communication Services,Integrated Telecommunication Services,T,SP100
+Bank of America Corp,Financials,Diversified Banks,BAC,SP100
+The Bank of New York Mellon Corp.,Financials,Asset Management & Custody Banks,BK,SP100
+Biogen Inc.,Health Care,Biotechnology,BIIB,SP100
+BlackRock,Financials,Asset Management & Custody Banks,BLK,SP100
+Boeing Company,Industrials,Aerospace & Defense,BA,SP100
+Booking Holdings Inc,Consumer Discretionary,Internet & Direct Marketing Retail,BKNG,SP100
+Bristol-Myers Squibb,Health Care,Health Care Distributors,BMY,SP100
+Capital One Financial,Financials,Consumer Finance,COF,SP100
+Caterpillar Inc.,Industrials,Construction Machinery & Heavy Trucks,CAT,SP100
+Charter Communications,Communication Services,Cable & Satellite,CHTR,SP100
+Chevron Corp.,Energy,Integrated Oil & Gas,CVX,SP100
+Cisco Systems,Information Technology,Communications Equipment,CSCO,SP100
+Citigroup Inc.,Financials,Diversified Banks,C,SP100
+Coca-Cola Company,Consumer Staples,Soft Drinks,KO,SP100
+Colgate-Palmolive,Consumer Staples,Household Products,CL,SP100
+Comcast Corp.,Communication Services,Cable & Satellite,CMCSA,SP100
+ConocoPhillips,Energy,Oil & Gas Exploration & Production,COP,SP100
+Costco Wholesale Corp.,Consumer Staples,Hypermarkets & Super Centers,COST,SP100
+CVS Health,Health Care,Health Care Services,CVS,SP100
+Danaher Corp.,Health Care,Health Care Equipment,DHR,SP100
+Duke Energy,Utilities,Electric Utilities,DUK,SP100
+Emerson Electric Company,Industrials,Electrical Components & Equipment,EMR,SP100
+Exelon Corp.,Utilities,Multi-Utilities,EXC,SP100
+Exxon Mobil Corp.,Energy,Integrated Oil & Gas,XOM,SP100
+"Facebook, Inc.",Communication Services,Interactive Media & Services,FB,SP100
+FedEx Corporation,Industrials,Air Freight & Logistics,FDX,SP100
+Ford Motor,Consumer Discretionary,Automobile Manufacturers,F,SP100
+General Dynamics,Industrials,Aerospace & Defense,GD,SP100
+General Electric,Industrials,Industrial Conglomerates,GE,SP100
+General Motors,Consumer Discretionary,Automobile Manufacturers,GM,SP100
+Gilead Sciences,Health Care,Biotechnology,GILD,SP100
+Goldman Sachs Group,Financials,Investment Banking & Brokerage,GS,SP100
+Home Depot,Consumer Discretionary,Home Improvement Retail,HD,SP100
+Honeywell Int'l Inc.,Industrials,Industrial Conglomerates,HON,SP100
+Intel Corp.,Information Technology,Semiconductors,INTC,SP100
+International Business Machines,Information Technology,IT Consulting & Other Services,IBM,SP100
+Johnson & Johnson,Health Care,Pharmaceuticals,JNJ,SP100
+JPMorgan Chase & Co.,Financials,Diversified Banks,JPM,SP100
+Kinder Morgan,Energy,Oil & Gas Storage & Transportation,KMI,SP100
+Kraft Heinz Co,Consumer Staples,Packaged Foods & Meats,KHC,SP100
+Lilly (Eli) & Co.,Health Care,Pharmaceuticals,LLY,SP100
+Lockheed Martin Corp.,Industrials,Aerospace & Defense,LMT,SP100
+Lowe's Cos.,Consumer Discretionary,Home Improvement Retail,LOW,SP100
+Mastercard Inc.,Information Technology,IT Services,MA,SP100
+McDonald's Corp.,Consumer Discretionary,Restaurants,MCD,SP100
+Medtronic plc,Health Care,Health Care Equipment,MDT,SP100
+Merck & Co.,Health Care,Pharmaceuticals,MRK,SP100
+MetLife Inc.,Financials,Life & Health Insurance,MET,SP100
+Microsoft Corp.,Information Technology,Systems Software,MSFT,SP100
+Mondelez International,Consumer Staples,Packaged Foods & Meats,MDLZ,SP100
+Morgan Stanley,Financials,Investment Banking & Brokerage,MS,SP100
+Netflix Inc.,Communication Services,Movies & Entertainment,NFLX,SP100
+NextEra Energy,Utilities,Multi-Utilities,NEE,SP100
+Nike,Consumer Discretionary,"Apparel, Accessories & Luxury Goods",NKE,SP100
+Nvidia Corporation,Information Technology,Semiconductors,NVDA,SP100
+Oracle Corp.,Information Technology,Application Software,ORCL,SP100
+PayPal,Information Technology,Data Processing & Outsourced Services,PYPL,SP100
+PepsiCo Inc.,Consumer Staples,Soft Drinks,PEP,SP100
+Pfizer Inc.,Health Care,Pharmaceuticals,PFE,SP100
+Philip Morris International,Consumer Staples,Tobacco,PM,SP100
+Procter & Gamble,Consumer Staples,Personal Products,PG,SP100
+QUALCOMM Inc.,Information Technology,Semiconductors,QCOM,SP100
+Salesforce.com,Information Technology,Internet Software & Services,CRM,SP100
+Schlumberger Ltd.,Energy,Oil & Gas Equipment & Services,SLB,SP100
+Simon Property Group Inc,Real Estate,Retail REITs,SPG,SP100
+Southern Co.,Utilities,Electric Utilities,SO,SP100
+Starbucks Corp.,Consumer Discretionary,Restaurants,SBUX,SP100
+Target Corp.,Consumer Discretionary,General Merchandise Stores,TGT,SP100
+Texas Instruments,Information Technology,Semiconductors,TXN,SP100
+Thermo Fisher Scientific,Health Care,Health Care Equipment,TMO,SP100
+U.S. Bancorp,Financials,Diversified Banks,USB,SP100
+Union Pacific,Industrials,Railroads,UNP,SP100
+United Health Group Inc.,Health Care,Managed Health Care,UNH,SP100
+United Parcel Service,Industrials,Air Freight & Logistics,UPS,SP100
+Verizon Communications,Communication Services,Integrated Telecommunication Services,VZ,SP100
+Visa Inc.,Information Technology,IT Services,V,SP100
+Walmart,Consumer Staples,Hypermarkets & Super Centers,WMT,SP100
+Walgreens Boots Alliance,Consumer Staples,Drug Retail,WBA,SP100
+The Walt Disney Company,Communication Services,Movies & Entertainment,DIS,SP100
+Wells Fargo,Financials,Diversified Banks,WFC,SP100
+3i,Financial Services,,III,FTSE100
+Admiral Group,Nonlife Insurance,,ADM,FTSE100
+Anglo American plc,Mining,,AAL,FTSE100
+Ashtead Group,Support Services,,AHT,FTSE100
+Associated British Foods,Food Producers,,ABF,FTSE100
+AstraZeneca,Pharmaceuticals & Biotechnology,,AZN,FTSE100
+Auto Trader Group,Media,,AUTO,FTSE100
+B&M,Retailers,,BME,FTSE100
+Berkeley Group Holdings,Household Goods & Home Construction,,BKG,FTSE100
+BHP,Mining,,BHP,FTSE100
+Compass Group,Support Services,,CPG,FTSE100
+CRH plc,Construction & Materials,,CRH,FTSE100
+DCC plc,Support Services,,DCC,FTSE100
+Diageo,Beverages,,DGE,FTSE100
+Entain,Travel and Leisure,,ENT,FTSE100
+Evraz,Industrial Metals & Mining,,EVR,FTSE100
+Flutter Entertainment,Travel & Leisure,,FLTR,FTSE100
+Fresnillo,Mining,,FRES,FTSE100
+GlaxoSmithKline,Pharmaceuticals & Biotechnology,,GSK,FTSE100
+Hargreaves Lansdown,Financial Services,,HL,FTSE100
+Hikma Pharmaceuticals,Pharmaceuticals & Biotechnology,,HIK,FTSE100
+Imperial Brands,Tobacco,,IMB,FTSE100
+InterContinental Hotels Group,Travel & Leisure,,IHG,FTSE100
+International Airlines Group,Travel & Leisure,,IAG,FTSE100
+Just Eat Takeaway,Software and Computer Services,,JET,FTSE100
+Kingfisher,Retailers,,KGF,FTSE100
+Land Securities,Real Estate Investment Trusts,,LAND,FTSE100
+London Stock Exchange Group,Financial Services,,LSE,FTSE100
+M&G,Asset Managers,,MNG,FTSE100
+Melrose Industries,Automobiles & Parts,,MRO,FTSE100
+Morrisons,Food & Drug Retailers,,MRW,FTSE100
+NatWest Group,Banks,,NWG,FTSE100
+Pennon Group,Water,,PNN,FTSE100
+Pershing Square Holdings,Financial Services,,PSH,FTSE100
+Prudential plc,Life Insurance,,PRU,FTSE100
+RELX,Media,,REL,FTSE100
+Rentokil Initial,Support Services,,RTO,FTSE100
+Rio Tinto,Mining,,RIO,FTSE100
+Sage Group,Software & Computer Services,,SGE,FTSE100
+Severn Trent,"Gas, Water & Multi-utilities",,SVT,FTSE100
+Smiths Group,General Industrials,,SMIN,FTSE100
+Smurfit Kappa,General Industrials,,SKG,FTSE100
+Spirax-Sarco Engineering,Industrial Engineering,,SPX,FTSE100
+Standard Chartered,Banks,,STAN,FTSE100
+Standard Life Aberdeen,Financial Services,,SLA,FTSE100
+Tesco,Food & Drug Retailers,,TSCO,FTSE100
+Vodafone Group,Mobile Telecommunications,,VOD,FTSE100
+Whitbread,Retail hospitality,,WTB,FTSE100
+WPP plc,Media,,WPP,FTSE100
+Royal Bank of Canada,Banking,,RY,Dow Jones Global Titans 50
+Allianz,Insurance,,ALV.DE,Dow Jones Global Titans 50
+Siemens,Conglomerate,,SIE.DE,Dow Jones Global Titans 50
+Toyota,Automobiles & Parts,,TM,Dow Jones Global Titans 50
+Samsung Electronics,Conglomerate,,SMSN.IL,Dow Jones Global Titans 50
+Nestlé,Food & Beverage,,NESN.SW,Dow Jones Global Titans 50
+Novartis,Pharmaceutical,,NOVN.SW,Dow Jones Global Titans 50
+Roche,Health Care,,ROG.SW,Dow Jones Global Titans 50
+Taiwan Semiconductor,Technology,,TSM,Dow Jones Global Titans 50
+HSBC Holdings PLC (UK Reg),Banking,,HSBA.L,Dow Jones Global Titans 50
+Tencent Holdings,Communication,,0700.HK,S&P Asia 50 Index
+Taiwan Semiconductor Manufacturing,Information Technology,,2330.TW,S&P Asia 50 Index
+AIA Group,Financial,,1299.HK,S&P Asia 50 Index
+China Construction Bank,Financial,,0939.HK,S&P Asia 50 Index
+Ping An Insurance,Financial,,2318.HK,S&P Asia 50 Index
+Industrial and Commercial Bank of China,Financial,,1398.HK,S&P Asia 50 Index
+China Mobile,Communication,,0941.HK,S&P Asia 50 Index
+SK Hynix,Information Technology,,000660.KS,S&P Asia 50 Index
+Hong Kong Exchanges and Clearing,Financial,,0388.HK,S&P Asia 50 Index
+DBS Group,Financial,,D05.SI,S&P Asia 50 Index
+Oversea-Chinese Banking,Financial,,O39.SI,S&P Asia 50 Index
+Bank of China,Financial,,3988.HK,S&P Asia 50 Index
+Hon Hai Precision Industry,Information Technology,,2317.TW,S&P Asia 50 Index
+Samsung Electronics (Non-voting),Information Technology,,005935.KS,S&P Asia 50 Index
+United Overseas Bank,Financial,,U11.SI,S&P Asia 50 Index
+CNOOC Limited,Energy,,0883.HK,S&P Asia 50 Index
+CK Hutchison Holdings,Industrials,,0001.HK,S&P Asia 50 Index
+Link Real Estate Investment Trust,Real Estate,,0823.HK,S&P Asia 50 Index
+Sun Hung Kai Properties,Real Estate,,0016.HK,S&P Asia 50 Index
+Hong Kong and China Gas,Utilities,,0003.HK,S&P Asia 50 Index
+MediaTek,Information Technology,,2454.TW,S&P Asia 50 Index
+Singapore Telecommunications,Communication,,Z74.SI,S&P Asia 50 Index
+Naver,Communication,,035420.KS,S&P Asia 50 Index
+CK Asset Holdings,Real Estate,,1113.HK,S&P Asia 50 Index
+CLP Holdings,Utilities,,0002.HK,S&P Asia 50 Index
+China Life Insurance Company,Financial,,2628.HK,S&P Asia 50 Index
+China Merchants Bank,Financial,,3968.HK,S&P Asia 50 Index
+Shinhan Financial Group,Financial,,055550.KS,S&P Asia 50 Index
+Galaxy Entertainment Group,Consumer Discretionary,,0027.HK,S&P Asia 50 Index
+Hang Seng Bank,Financial,,0011.HK,S&P Asia 50 Index
+China Petroleum & Chemical,Energy,,0386.HK,S&P Asia 50 Index
+POSCO,Materials,,005490.KS,S&P Asia 50 Index
+Hyundai Motor Company,Consumer Discretionary,,005380.KS,S&P Asia 50 Index
+Celltrion,Health Care,,068270.KS,S&P Asia 50 Index
+KB Financial Group Inc,Financial,,105560.KS,S&P Asia 50 Index
+CTBC Financial Holding,Financial,,2891.TW,S&P Asia 50 Index
+Hyundai Mobis,Consumer Discretionary,,012330.KS,S&P Asia 50 Index
+Formosa Plastics Corporation,Materials,,1301.TW,S&P Asia 50 Index
+Chunghwa Telecommunications,Communication,,2412.TW,S&P Asia 50 Index
+LG Chem,Materials,,051910.KS,S&P Asia 50 Index
+Nan Ya Plastics Corporation,Materials,,1303.TW,S&P Asia 50 Index
+Formosa Chemicals & Fibre Corporation,Materials,,1326.TW,S&P Asia 50 Index
+Largan Precision,Information Technology,,3008.TW,S&P Asia 50 Index
+Cathay Financial Holding,Financial,,2882.TW,S&P Asia 50 Index
+China Overseas Land and Investment,Real Estate,,0688.HK,S&P Asia 50 Index
+Sands China,Consumer Discretionary,,1928.HK,S&P Asia 50 Index
+PetroChina,Energy,,0857.HK,S&P Asia 50 Index
+KT&G,Consumer Staples,,033780.KS,S&P Asia 50 Index
+Houghton Mifflin Harcourt Company,,,HMHC,
+VirnetX Holding Corp,,,VHC,
+"SeaChange International, Inc.",,,SEAC,
+DBV Technologies S.A.,,,DBVT,
+"ARC Document Solutions, Inc.",,,ARC,
+"Community Health Systems, Inc.",,,CYH,
+BELLUS Health Inc.,,,BLU,
+Entercom Communications Corp.,,,ETM,
+"AMC Entertainment Holdings, Inc.",,,AMC,
+R. R. Donnelley & Sons Company,,,RRD,
+Ceragon Networks Ltd.,,,CRNT,
+"Acorda Therapeutics, Inc.",,,ACOR,
+"Jounce Therapeutics, Inc.",,,JNCE,
+"Infinity Pharmaceuticals, Inc.",,,INFI,
+"Gritstone Oncology, Inc.",,,GRTS,
+NeoPhotonics Corporation,,,NPTN,
+ObsEva SA,,,OBSV,
+"A10 Networks, Inc.",,,ATEN,
+"Constellation Pharmaceuticals, Inc.",,,CNST,
+"Alector, Inc.",,,ALEC,
+"Precision BioSciences, Inc.",,,DTIL,
+"Advanced Micro Devices, Inc.",,,AMD,
+"Acacia Communications, Inc.",,,ACIA,
+Inseego Corp.,,,INSG,
+"Zscaler, Inc.",,,ZS,
+Atlassian Corporation Plc,,,TEAM,
+"Qorvo, Inc.",,,QRVO,
+"ServiceNow, Inc.",,,NOW,
+Coupa Software Incorporated,,,COUP,
+Smartsheet Inc.,,,SMAR,
+Lam Research Corporation,,,LRCX,
+ASML Holding N.V.,,,ASML,
+"Teradyne, Inc.",,,TER,
+"Q2 Holdings, Inc.",,,QTWO,
+"RingCentral, Inc.",,,RNG,
+"LivePerson, Inc.",,,LPSN,
+Logitech International S.A.,,,LOGI,
+Wix.com Ltd.,,,WIX,
+"21Vianet Group, Inc.",,,VNET,
+"Axcelis Technologies, Inc.",,,ACLS,
+"MaxLinear, Inc.",,,MXL,
+iRobot Corporation,,,IRBT,
+"Kulicke and Soffa Industries, Inc.",,,KLIC,
+"MKS Instruments, Inc.",,,MKSI,
+"TETRA Technologies, Inc.",,,TTI,
+"Fitbit, Inc.",,,FIT,
+PBF Energy Inc.,,,PBF,
+"Assertio Holdings, Inc.",,,ASRT,
+HEXO Corp.,,,HEXO,
+"Stride, Inc.",,,LRN,
+Embraer S.A.,,,ERJ,
+Two Harbors Investment Corp.,,,TWO,
+OrganiGram Holdings Inc.,,,OGI,
+"Barnes & Noble Education, Inc.",,,BNED,
+ReneSola Ltd,,,SOL,
+"Gannett Co., Inc.",,,GCI,
+McEwen Mining Inc.,,,MUX,
+"Tricida, Inc.",,,TCDA,
+BEST Inc.,,,BEST,
+Party City Holdco Inc.,,,PRTY,
+Zix Corporation,,,ZIXI,
+Realogy Holdings Corp.,,,RLGY,
+"J.Jill, Inc.",,,JILL,
+NGL Energy Partners LP,,,NGL,
