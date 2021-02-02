@@ -2,7 +2,8 @@ from abc import ABC
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_squared_error
+import tqdm
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 import lime
 import lime.lime_tabular
@@ -30,7 +31,6 @@ class RFFeatureImportanceSelector(FeatureSelectorBase):
 
     def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
                       y_test: pd.DataFrame):
-        ####***************feature importance***********************
         print('*' * 20, 'feature importance', '*' * 20)
         all_columns = X.columns
         feat_imp_s = pd.DataFrame(
@@ -51,29 +51,53 @@ class PermutationImportanceSelector(FeatureSelectorBase):
 
     def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
                       y_test: pd.DataFrame):
-        ####***************permutation feature importance***********************
         print('*' * 20, 'permutation importance', '*' * 20)
-        permutation_importance_s, _, _ = self.__compute_permutation_importance(X_test, y_test, estimator)
-        min_row = permutation_importance_s['permutation_importance'].argsort()[:self._k]
-        column = permutation_importance_s.iloc[min_row].features.values
+        # permutation_importance_s, _, _ = self.__compute_permutation_importance(X_test, y_test, estimator)
+        # min_row = permutation_importance_s['permutation_importance'].argsort()[:self._k]
+        # column = permutation_importance_s.iloc[min_row].features.values
+        # columns = set(X_test.columns) - set(column)
+        #
+        # self._importance = permutation_importance_s.iloc[min_row].reset_index().values
+
+        n_points = min(100, len(X_test))
+        sampled_index = X_test.sample(n_points, random_state=1).index
+        res = self.__ablation_importance(
+            model_fn=estimator.predict,
+            x=X_test.loc[sampled_index],
+            y=y_test.loc[sampled_index],
+            n_repetitions=self.__num_rounds,
+        )
+        mean_imp = res.mean()
+
+        # 95% CI based upon z-distribution approximation
+        # of t-distribution using MLE estimate of variance
+        imp_ci = 1.96 * res.std(ddof=0) / np.sqrt(self.__num_rounds)
+
+        imp = pd.DataFrame(
+            dict(
+                feature_importance=mean_imp,
+                ci_fixed=imp_ci
+            ),
+        ).sort_values(by='feature_importance', ascending=False)
+        min_row = imp['feature_importance'].argsort()[:self._k]
+        column = imp.iloc[min_row].index.values
         columns = set(X_test.columns) - set(column)
 
-        self._importance = permutation_importance_s.iloc[min_row].reset_index().values
-
+        self._importance = imp.iloc[min_row].reset_index().values
         return columns
 
-    def __compute_permutation_importance(self, X_cr_test, y_cr_test, estimator):
+    def __compute_permutation_importance(self, X_test, y_cr_test, estimator):
         imp_values, all_trials = self.__feature_importance_permutation(
             predict_method=estimator.predict,
-            X=X_cr_test.values,
+            X=X_test.values,
             y=y_cr_test['label'].values,
             metric=self.__metric,
             seed=self.__seed)
         permutation_importance = pd.DataFrame(
-            {'features': X_cr_test.columns.tolist(), "permutation_importance": imp_values}).sort_values(
+            {'features': X_test.columns.tolist(), "permutation_importance": imp_values}).sort_values(
             'permutation_importance', ascending=False)
         permutation_importance = permutation_importance.head(25)
-        all_feat_imp_df = pd.DataFrame(data=np.transpose(all_trials), columns=X_cr_test.columns,
+        all_feat_imp_df = pd.DataFrame(data=np.transpose(all_trials), columns=X_test.columns,
                                        index=range(0, self.__num_rounds))
         order_column = all_feat_imp_df.mean(axis=0).sort_values(ascending=False).index.tolist()
         return permutation_importance, all_feat_imp_df, order_column
@@ -160,6 +184,56 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         mean_importance_values /= self.__num_rounds
 
         return mean_importance_values, all_importance_values
+
+    @staticmethod
+    def __pointwise_absolute_error(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        """
+        :param y_true: Array of shape (N,), (N, 1)
+        :param y_pred: Array of shape (N,), (N, 1)
+
+        :returns: An array of shape (N,) corresponding to the squared error of each909090p5r
+            row.
+
+        Parameters
+        ----------
+        self
+
+        """
+        # demote (N, 1) shapes to (N,)
+        if y_true.ndim == 2:
+            y_true = y_true[:, 0]
+        if y_pred.ndim == 2:
+            y_pred = y_pred[:, 0]
+
+        loss = np.abs(y_true - y_pred)
+        return loss
+
+    def __permutation_predictions(self, model_fn, x, seed):
+        """Generates a DataFrame where each column is the predictions resulting
+        from permutation-based ablation of the corresponding feature."""
+        shuffled_order = np.random.RandomState(seed).permutation(x.shape[0])
+        res = dict()
+        for column_name, column in x.iteritems():
+            permuted_x = x.copy()
+            permuted_x[column_name] = column.values[shuffled_order]
+            res[column_name] = model_fn(permuted_x)
+        return pd.DataFrame(res)
+
+    def __ablation_importance(self, model_fn, x, y, n_repetitions=30, loss_fn=mean_absolute_error):
+        """Reference implementation of ablation importance."""
+        original_predictions = model_fn(x)
+        original_loss = loss_fn(y, original_predictions)
+        results = pd.DataFrame.from_dict({
+            seed: {
+                permuted_column_name: (loss_fn(
+                    y, y_hat_permuted) - original_loss)
+                for permuted_column_name, y_hat_permuted
+                in self.__permutation_predictions(model_fn, x, seed).iteritems()
+            }
+            for seed in tqdm.tqdm(range(n_repetitions))
+        }, orient='index')
+        results.index.name = 'seed'
+        return results
 
 
 class LIMEPermutationImportance(FeatureSelectorBase):

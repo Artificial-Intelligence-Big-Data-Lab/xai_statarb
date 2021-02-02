@@ -59,8 +59,14 @@ def get_cumulative_returns(data: pd.DataFrame, ticker):
     return clr_df
 
 
-def get_target(data: pd.DataFrame, ticker):
-    label_df = pd.DataFrame(data=(data['Close'] - data['Open']) / data['Open'], columns=['label'])
+def get_target(data_df: pd.DataFrame, ticker):
+    """
+
+    Parameters
+    ----------
+    ticker : string
+    """
+    label_df = pd.DataFrame(data=(data_df['Close'] - data_df['Open']) / data_df['Open'], columns=['label'])
     label_df['ticker'] = ticker
     label_df.reset_index(inplace=True)
     label_df.set_index(['Date', 'ticker'], inplace=True)
@@ -77,19 +83,20 @@ def check_if_processed(metrics, ticker, walk):
     return len(metrics[(metrics['ticker'] == ticker) & (metrics['walk'] == walk)]) == 4
 
 
-def add_score_to_metrics(metric_single_baseline, score):
+def add_score_to_metrics(metric_df, score):
     """
 
     Parameters
     ----------
-    metric_single_baseline : pandas DataFrame
+    score: dictionary with cross-validation measures
+    metric_df : pandas DataFrame
     """
-    metric_single_baseline['mean_mse'] = -score['test_neg_mean_squared_error'].mean()
-    metric_single_baseline['std_mse'] = score['test_neg_mean_squared_error'].std(ddof=1)
-    metric_single_baseline['mean_mae'] = -score['test_neg_mean_absolute_error'].mean()
-    metric_single_baseline['std_mae'] = score['test_neg_mean_absolute_error'].std(ddof=1)
-    metric_single_baseline['mean_r2'] = score['test_r2'].mean()
-    metric_single_baseline['std_r2'] = score['test_r2'].std(ddof=1)
+    metric_df['mean_mse'] = -score['test_neg_mean_squared_error'].mean()
+    metric_df['std_mse'] = score['test_neg_mean_squared_error'].std(ddof=1)
+    metric_df['mean_mae'] = -score['test_neg_mean_absolute_error'].mean()
+    metric_df['std_mae'] = score['test_neg_mean_absolute_error'].std(ddof=1)
+    metric_df['mean_r2'] = score['test_r2'].mean()
+    metric_df['std_r2'] = score['test_r2'].std(ddof=1)
     return
 
 
@@ -99,7 +106,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 26
+    test = 27
 
     features_no = 2
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
@@ -113,8 +120,8 @@ if __name__ == "__main__":
                      datetime.datetime.strptime('2018-01-01', '%Y-%m-%d'), 4, no_walks=1)
 
     methods = {
-        'fi': RFFeatureImportanceSelector(features_no),
-        # 'pi':get_least_important_feature_by_pi,
+        # 'fi': RFFeatureImportanceSelector(features_no),
+        'pi': PermutationImportanceSelector(features_no, seed=42),
         # 'sp': get_least_important_feature_by_sp
     }
 
@@ -199,7 +206,7 @@ if __name__ == "__main__":
                     metrics_fi_looc['removed_column_imp{0}'.format(r_idx)] = missing_col[1]
                     missing_col_dict['removed_column{0}'.format(r_idx)] = missing_col[0]
 
-                add_score_to_metrics(metrics_fi_looc,score_looc)
+                add_score_to_metrics(metrics_fi_looc, score_looc)
 
                 missing_col_dict.update(dict({'walk': idx, 'method': method, 'ticker': ticker}))
                 missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
@@ -207,7 +214,6 @@ if __name__ == "__main__":
 
                 metrics = metrics.append(metrics_fi_looc, ignore_index=True)
                 metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
-
 
             end_time = time.perf_counter()
             print('{0} took {1} s'.format(ticker, end_time - start_time))
