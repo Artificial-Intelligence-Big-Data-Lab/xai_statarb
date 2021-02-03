@@ -5,7 +5,11 @@ import time
 
 import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor
+from sklearn import svm
+from sklearn import linear_model
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import TimeSeriesSplit, cross_validate
+from sklearn.preprocessing import MinMaxScaler
 
 from utils import *
 import feature_selection as fs
@@ -24,8 +28,10 @@ def get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test, context, col
     print('train', X_train.shape, y_train.shape)
     print('test', X_test.shape, y_test.shape)
 
-    regressor = RandomForestRegressor(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True,
-                                      random_state=42)
+    # regressor = RandomForestRegressor(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True,
+    #                                   random_state=42)
+    regressor = Pipeline([('scaler', MinMaxScaler(feature_range=(-1, 1)))
+                             , ('svc', linear_model.TweedieRegressor( alpha=0.001))])
     # # regressor = ExtraTreesRegressor(n_estimators=350, max_samples=0.4, max_features=1, oob_score=True, bootstrap=True, random_state=42)
     # regressor.fit(X,y.values.ravel())
     # # save_path= './LIME/models/{0}_cr_{1}_{2}_{3}.joblib'.format(context["ticker"],context["method"],context["start"].strftime("%Y-%m-%d"),context["end"].strftime("%Y-%m-%d"))
@@ -39,7 +45,7 @@ def get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test, context, col
                                scoring=['r2', 'neg_mean_absolute_error', 'neg_mean_squared_error'], n_jobs=-1,
                                verbose=0, cv=cv)
     regressor.fit(X_train.values, y_train.values.ravel())
-    y_hat = regressor.predict(X_test)
+    y_hat = regressor.predict(X_test.values)
     y_test['predicted'] = y_hat.reshape(-1, 1)
     print('test', X_test.shape, y_test.shape)
     return regressor, y_test, score if get_cross_validation_results else None
@@ -106,7 +112,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 32
+    test = 35
 
     features_no = 2
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)

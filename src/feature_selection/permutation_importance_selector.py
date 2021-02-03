@@ -137,12 +137,6 @@ class PermutationImportanceSelector(FeatureSelectorBase):
     def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
                       y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
-        # permutation_importance_s, _, _ = self.__compute_permutation_importance(X_test, y_test, estimator)
-        # min_row = permutation_importance_s['permutation_importance'].argsort()[:self._k]
-        # column = permutation_importance_s.iloc[min_row].features.values
-        # columns = set(X_test.columns) - set(column)
-        #
-        # self._importance = permutation_importance_s.iloc[min_row].reset_index().values
 
         n_points = min(100, len(X_test))
         sampled_index = X_test.sample(n_points, random_state=self.__seed).index
