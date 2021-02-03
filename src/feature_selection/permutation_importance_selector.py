@@ -1,45 +1,9 @@
-from abc import ABC
-
 import numpy as np
 import pandas as pd
 import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-import lime
-import lime.lime_tabular
-from lime import submodular_pick
-
-
-class FeatureSelectorBase(ABC):
-    def __init__(self, k=1):
-        self._columns = None
-        self._importance = None
-        self._k = k
-
-    def transform(self, estimator, X_train, y_train, X_test, y_test):
-        return self.fit_transform(estimator, X_train, y_train, X_test, y_test)
-
-    def fit_transform(self, estimator, X, y, X_test, y_test):
-        pass
-
-    @property
-    def importance(self):
-        return self._importance
-
-
-class RFFeatureImportanceSelector(FeatureSelectorBase):
-
-    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
-                      y_test: pd.DataFrame):
-        print('*' * 20, 'feature importance', '*' * 20)
-        all_columns = X.columns
-        feat_imp_s = pd.DataFrame(
-            {'features': all_columns, "feature_importance": estimator.feature_importances_}).sort_values(
-            'feature_importance', ascending=False)
-        column = feat_imp_s['features'].tail(self._k).values
-        columns = set(all_columns) - set(column)
-        self._importance = feat_imp_s[['features', 'feature_importance']].tail(self._k).values
-        return columns
+from .feature_selector_base import FeatureSelectorBase
 
 
 class PermutationImportanceSelector(FeatureSelectorBase):
@@ -234,36 +198,3 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         }, orient='index')
         results.index.name = 'seed'
         return results
-
-
-class LIMEPermutationImportance(FeatureSelectorBase):
-
-    def __init__(self, k, num_exp_desired=126, random_state=123):
-        super(LIMEPermutationImportance, self).__init__(k)
-        self.__num_exp_desired = num_exp_desired
-        self.__random_state = random_state
-
-    def fit_transform(self, estimator, X, y, X_test, y_test):
-        # ####***************LIME feature importance***********************
-        print('*' * 20, 'LIME feature importance', '*' * 20)
-        lime_explainer = lime.lime_tabular.LimeTabularExplainer(X.values,
-                                                                training_labels=y.values,
-                                                                feature_names=X.columns.tolist(),
-                                                                verbose=False, mode='regression'
-                                                                , discretize_continuous=False
-                                                                , random_state=self.__random_state)
-        sp_obj_cr = submodular_pick.SubmodularPick(lime_explainer, X_test.values, estimator.predict,
-                                                   num_features=len(X_test.columns),
-                                                   num_exps_desired=self.__num_exp_desired)
-        W_s = pd.DataFrame([dict(this.as_list(label=0)) for this in sp_obj_cr.explanations])
-        rank_w_s = W_s[X_test.columns].abs().rank(1, ascending=False, method='first')
-        rank_w_s_median, rank_w_s_mean = rank_w_s.median(), rank_w_s.mean()
-        rank_w_s_median.name = 'median_rank'
-        rank_w_s_mean.name = 'mean_rank'
-        ranked_features = pd.concat([rank_w_s_median, rank_w_s_mean], axis=1).sort_values(
-            by=['median_rank', 'mean_rank'],
-            ascending=[False, False])
-        min_row = ranked_features.index[:self._k].values
-        columns = set(X_test.columns) - set(min_row)
-        self._importance = ranked_features.head(self._k).reset_index().values
-        return columns

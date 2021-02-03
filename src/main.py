@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import TimeSeriesSplit, cross_validate
 
 from utils import *
-from feature_selector import RFFeatureImportanceSelector, LIMEPermutationImportance, PermutationImportanceSelector
+import feature_selection as fs
 from walkforward import WalkForward
 
 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     methods = {
         # 'fi': RFFeatureImportanceSelector(features_no),
-        'pi': PermutationImportanceSelector(features_no, seed=42),
+        'pi': fs.PermutationImportanceSelector(features_no, seed=42),
         # 'sp': get_least_important_feature_by_sp
     }
 
