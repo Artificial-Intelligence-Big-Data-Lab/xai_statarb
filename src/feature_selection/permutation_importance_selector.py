@@ -3,23 +3,22 @@ import pandas as pd
 import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-from .feature_selector_base import FeatureSelectorBase
+from .feature_selector_base import *
 
 
 class PISelector(FeatureSelectorBase):
-    def __init__(self, k, num_rounds=50, metric=mean_squared_error, seed=0):
+    def __init__(self, k=0, num_rounds=50, metric=mean_squared_error, seed=0):
         super().__init__(k)
         self.__metric = metric
         self.__num_rounds = num_rounds
         self.__seed = seed
+        self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
 
     def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame, y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
         permutation_importance_s = self.__compute_permutation_importance(X_test, y_test, estimator)
-        min_row = permutation_importance_s['feature_importance'].tail(self._k)
-        column = min_row.index.values
-        columns = set(X_test.columns) - set(column)
-
+        self.__selector.importance_ = permutation_importance_s
+        min_row, columns = self.__selector.select(X_test.columns)
         self._importance = min_row.reset_index().values
         return columns
 
@@ -38,7 +37,7 @@ class PISelector(FeatureSelectorBase):
                 feature_importance=all_feat_imp_df.mean(),
                 ci_fixed=imp_ci
             ),
-        ).sort_values(by=['feature_importance'], ascending=[False])
+        )
 
         return permutation_importance
 
@@ -127,12 +126,12 @@ class PISelector(FeatureSelectorBase):
 
 
 class PermutationImportanceSelector(FeatureSelectorBase):
-    def __init__(self, k, num_rounds=50, metric=mean_squared_error, seed=0):
+    def __init__(self, k=0, num_rounds=50, metric=mean_squared_error, seed=0):
         super().__init__(k)
         self.__metric = metric
         self.__num_rounds = num_rounds
         self.__seed = seed
-        self.CI = None
+        self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
 
     def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
                       y_test: pd.DataFrame):
@@ -157,13 +156,10 @@ class PermutationImportanceSelector(FeatureSelectorBase):
                 feature_importance=mean_imp,
                 ci_fixed=imp_ci
             ),
-        ).sort_values(by=['feature_importance'], ascending=[True])
-        min_row = imp['feature_importance'].argsort()[:self._k]
-        column = imp.iloc[min_row].index.values
-        columns = set(X_test.columns) - set(column)
-
-        self._importance = imp.iloc[min_row].reset_index().values
-        self.CI = imp
+        )
+        self.__selector.importance_ = imp
+        min_row, columns = self.__selector.select(X_test.columns)
+        self._importance = min_row.reset_index().values
         return columns
 
     @staticmethod

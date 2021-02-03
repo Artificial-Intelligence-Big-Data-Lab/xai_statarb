@@ -28,10 +28,10 @@ def get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test, context, col
     print('train', X_train.shape, y_train.shape)
     print('test', X_test.shape, y_test.shape)
 
-    # regressor = RandomForestRegressor(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True,
-    #                                   random_state=42)
-    regressor = Pipeline([('scaler', MinMaxScaler(feature_range=(-1, 1)))
-                             , ('svc', linear_model.TweedieRegressor( alpha=0.001))])
+    regressor = RandomForestRegressor(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True,
+                                      random_state=42)
+    # regressor = Pipeline([('scaler', MinMaxScaler(feature_range=(-1, 1)))
+    #                          , ('svc', linear_model.TweedieRegressor( alpha=0.001))])
     # # regressor = ExtraTreesRegressor(n_estimators=350, max_samples=0.4, max_features=1, oob_score=True, bootstrap=True, random_state=42)
     # regressor.fit(X,y.values.ravel())
     # # save_path= './LIME/models/{0}_cr_{1}_{2}_{3}.joblib'.format(context["ticker"],context["method"],context["start"].strftime("%Y-%m-%d"),context["end"].strftime("%Y-%m-%d"))
@@ -112,8 +112,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 35
-
+    test = 37
     features_no = 2
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
     REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
@@ -128,7 +127,9 @@ if __name__ == "__main__":
     methods = {
         # 'fi': RFFeatureImportanceSelector(features_no),
         'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        'pi2': fs.PISelector(features_no, seed=42),
+        # 'pi2': fs.PISelector(features_no, seed=42),
+        'pi_all': fs.PermutationImportanceSelector(seed=42),
+        # 'pi2_all': fs.PISelector(seed=42)
         # 'sp': get_least_important_feature_by_sp
     }
 
@@ -185,10 +186,9 @@ if __name__ == "__main__":
             metric_single_baseline['walk'] = idx
             metric_single_baseline['model'] = 'baseline'
             metric_single_baseline['ticker'] = ticker
-            for r_idx in range(0, features_no):
+            for r_idx in range(0, len(X_cr_test.columns)):
                 metric_single_baseline['removed_column{0}'.format(r_idx)] = ''
                 metric_single_baseline['removed_column_imp{0}'.format(r_idx)] = ''
-            # metric_single_baseline['removed_column'] = ''
 
             metrics = metrics.append(metric_single_baseline, ignore_index=True)
 
