@@ -5,14 +5,10 @@ import time
 
 import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor
-from sklearn import svm
-from sklearn import linear_model
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import TimeSeriesSplit, cross_validate
-from sklearn.preprocessing import MinMaxScaler
 
-from utils import *
 import feature_selection as fs
+from utils import *
 from walkforward import WalkForward
 
 
@@ -112,7 +108,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 37
+    test = 38
     features_no = 2
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
     REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
@@ -186,6 +182,8 @@ if __name__ == "__main__":
             metric_single_baseline['walk'] = idx
             metric_single_baseline['model'] = 'baseline'
             metric_single_baseline['ticker'] = ticker
+            add_score_to_metrics(metric_single_baseline, score)
+
             for r_idx in range(0, len(X_cr_test.columns)):
                 metric_single_baseline['removed_column{0}'.format(r_idx)] = ''
                 metric_single_baseline['removed_column_imp{0}'.format(r_idx)] = ''
@@ -193,8 +191,7 @@ if __name__ == "__main__":
             metrics = metrics.append(metric_single_baseline, ignore_index=True)
 
             for method, transformer in methods.items():
-                columns = transformer.fit_transform(baseline, X_cr_train, y_cr_train, X_cr_test, y_cr_test,
-                                                    )
+                columns = transformer.fit_transform(baseline, X_cr_train, y_cr_train, X_cr_test, y_cr_test)
                 looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test,
                                                                                   y_cr_test,
                                                                                   context={'walk': idx,
