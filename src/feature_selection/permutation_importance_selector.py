@@ -6,48 +6,21 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from .feature_selector_base import FeatureSelectorBase
 
 
-class PermutationImportanceSelector(FeatureSelectorBase):
+class PISelector(FeatureSelectorBase):
     def __init__(self, k, num_rounds=50, metric=mean_squared_error, seed=0):
         super().__init__(k)
         self.__metric = metric
         self.__num_rounds = num_rounds
         self.__seed = seed
 
-    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
-                      y_test: pd.DataFrame):
+    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame, y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
-        # permutation_importance_s, _, _ = self.__compute_permutation_importance(X_test, y_test, estimator)
-        # min_row = permutation_importance_s['permutation_importance'].argsort()[:self._k]
-        # column = permutation_importance_s.iloc[min_row].features.values
-        # columns = set(X_test.columns) - set(column)
-        #
-        # self._importance = permutation_importance_s.iloc[min_row].reset_index().values
-
-        n_points = min(100, len(X_test))
-        sampled_index = X_test.sample(n_points, random_state=1).index
-        res = self.__ablation_importance(
-            model_fn=estimator.predict,
-            x=X_test.loc[sampled_index],
-            y=y_test.loc[sampled_index],
-            n_repetitions=self.__num_rounds,
-        )
-        mean_imp = res.mean()
-
-        # 95% CI based upon z-distribution approximation
-        # of t-distribution using MLE estimate of variance
-        imp_ci = 1.96 * res.std(ddof=0) / np.sqrt(self.__num_rounds)
-
-        imp = pd.DataFrame(
-            dict(
-                feature_importance=mean_imp,
-                ci_fixed=imp_ci
-            ),
-        ).sort_values(by='feature_importance', ascending=False)
-        min_row = imp['feature_importance'].argsort()[:self._k]
-        column = imp.iloc[min_row].index.values
+        permutation_importance_s = self.__compute_permutation_importance(X_test, y_test, estimator)
+        min_row = permutation_importance_s['feature_importance'].tail(self._k)
+        column = min_row.index.values
         columns = set(X_test.columns) - set(column)
 
-        self._importance = imp.iloc[min_row].reset_index().values
+        self._importance = min_row.reset_index().values
         return columns
 
     def __compute_permutation_importance(self, X_test, y_cr_test, estimator):
@@ -57,14 +30,17 @@ class PermutationImportanceSelector(FeatureSelectorBase):
             y=y_cr_test['label'].values,
             metric=self.__metric,
             seed=self.__seed)
-        permutation_importance = pd.DataFrame(
-            {'features': X_test.columns.tolist(), "permutation_importance": imp_values}).sort_values(
-            'permutation_importance', ascending=False)
-        permutation_importance = permutation_importance.head(25)
         all_feat_imp_df = pd.DataFrame(data=np.transpose(all_trials), columns=X_test.columns,
                                        index=range(0, self.__num_rounds))
-        order_column = all_feat_imp_df.mean(axis=0).sort_values(ascending=False).index.tolist()
-        return permutation_importance, all_feat_imp_df, order_column
+        imp_ci = 1.96 * all_feat_imp_df.std(ddof=0) / np.sqrt(self.__num_rounds)
+        permutation_importance = pd.DataFrame(
+            dict(
+                feature_importance=all_feat_imp_df.mean(),
+                ci_fixed=imp_ci
+            ),
+        ).sort_values(by=['feature_importance'], ascending=[False])
+
+        return permutation_importance
 
     def __feature_importance_permutation(self, X, y, predict_method, metric, seed):
         """Feature importance imputation via permutation importance
@@ -149,6 +125,53 @@ class PermutationImportanceSelector(FeatureSelectorBase):
 
         return mean_importance_values, all_importance_values
 
+
+class PermutationImportanceSelector(FeatureSelectorBase):
+    def __init__(self, k, num_rounds=50, metric=mean_squared_error, seed=0):
+        super().__init__(k)
+        self.__metric = metric
+        self.__num_rounds = num_rounds
+        self.__seed = seed
+        self.CI = None
+
+    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
+                      y_test: pd.DataFrame):
+        print('*' * 20, 'permutation importance', '*' * 20)
+        # permutation_importance_s, _, _ = self.__compute_permutation_importance(X_test, y_test, estimator)
+        # min_row = permutation_importance_s['permutation_importance'].argsort()[:self._k]
+        # column = permutation_importance_s.iloc[min_row].features.values
+        # columns = set(X_test.columns) - set(column)
+        #
+        # self._importance = permutation_importance_s.iloc[min_row].reset_index().values
+
+        n_points = min(100, len(X_test))
+        sampled_index = X_test.sample(n_points, random_state=self.__seed).index
+        res = self.__ablation_importance(
+            model_fn=estimator.predict,
+            x=X_test.loc[sampled_index],
+            y=y_test.loc[sampled_index],
+            n_repetitions=self.__num_rounds,
+        )
+        mean_imp = res.mean()
+
+        # 95% CI based upon z-distribution approximation
+        # of t-distribution using MLE estimate of variance
+        imp_ci = 1.96 * res.std(ddof=0) / np.sqrt(self.__num_rounds)
+
+        imp = pd.DataFrame(
+            dict(
+                feature_importance=mean_imp,
+                ci_fixed=imp_ci
+            ),
+        ).sort_values(by=['feature_importance'], ascending=[True])
+        min_row = imp['feature_importance'].argsort()[:self._k]
+        column = imp.iloc[min_row].index.values
+        columns = set(X_test.columns) - set(column)
+
+        self._importance = imp.iloc[min_row].reset_index().values
+        self.CI = imp
+        return columns
+
     @staticmethod
     def __pointwise_absolute_error(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         """
@@ -172,7 +195,8 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         loss = np.abs(y_true - y_pred)
         return loss
 
-    def __permutation_predictions(self, model_fn, x, seed):
+    @staticmethod
+    def __permutation_predictions(model_fn, x, seed):
         """Generates a DataFrame where each column is the predictions resulting
         from permutation-based ablation of the corresponding feature."""
         shuffled_order = np.random.RandomState(seed).permutation(x.shape[0])
@@ -183,14 +207,18 @@ class PermutationImportanceSelector(FeatureSelectorBase):
             res[column_name] = model_fn(permuted_x)
         return pd.DataFrame(res)
 
-    def __ablation_importance(self, model_fn, x, y, n_repetitions=30, loss_fn=mean_absolute_error):
-        """Reference implementation of ablation importance."""
+    def __ablation_importance(self, model_fn, x, y, n_repetitions=50, loss_fn=mean_absolute_error):
+        """Reference implementation of ablation importance.
+
+        Returns
+        -------
+        DataFrame
+        """
         original_predictions = model_fn(x)
         original_loss = loss_fn(y, original_predictions)
         results = pd.DataFrame.from_dict({
             seed: {
-                permuted_column_name: (loss_fn(
-                    y, y_hat_permuted) - original_loss)
+                permuted_column_name: (loss_fn(y, y_hat_permuted) - original_loss)
                 for permuted_column_name, y_hat_permuted
                 in self.__permutation_predictions(model_fn, x, seed).iteritems()
             }
