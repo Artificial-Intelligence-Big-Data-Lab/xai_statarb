@@ -108,7 +108,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 40
+    test = 42
     features_no = 2
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
     REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
@@ -123,8 +123,8 @@ if __name__ == "__main__":
     methods = {
         # 'fi': RFFeatureImportanceSelector(features_no),
         # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        'pi2': fs.PISelector(features_no, seed=42),
-        # 'pi_all': fs.PermutationImportanceSelector(seed=42),
+        # 'pi2': fs.PISelector(features_no, seed=42),
+        'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi2_all': fs.PISelector(seed=42)
         # 'sp': get_least_important_feature_by_sp
     }

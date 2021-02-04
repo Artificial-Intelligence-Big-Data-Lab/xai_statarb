@@ -132,9 +132,9 @@ class PISelector(FeatureSelectorBase):
 
 
 class PermutationImportanceSelector(FeatureSelectorBase):
-    def __init__(self, k=0, num_rounds=50, metric=mean_squared_error, seed=0):
+    def __init__(self, k=0, num_rounds=50, loss_fn=mean_absolute_error, seed=0):
         super().__init__(k)
-        self.__metric = metric
+        self.__loss_fn = loss_fn
         self.__num_rounds = num_rounds
         self.__seed = seed
         self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
@@ -145,7 +145,9 @@ class PermutationImportanceSelector(FeatureSelectorBase):
 
         n_points = min(100, len(X_test))
         sampled_index = X_test.sample(n_points, random_state=self.__seed).index
-        res = self.__ablation_importance(
+        original_predictions = estimator.predict(X_test.loc[sampled_index])
+        self.__original_loss = self.__loss_fn(y_test.loc[sampled_index], original_predictions)
+        res, error_res = self.__ablation_importance(
             model_fn=estimator.predict,
             x=X_test.loc[sampled_index],
             y=y_test.loc[sampled_index],
@@ -160,7 +162,9 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         imp = pd.DataFrame(
             dict(
                 feature_importance=mean_imp,
-                ci_fixed=imp_ci
+                ci_fixed=imp_ci,
+                errors=error_res.mean(),
+                std_errors=error_res.std()
             ),
         )
         self.__selector.importance_ = imp
@@ -203,22 +207,21 @@ class PermutationImportanceSelector(FeatureSelectorBase):
             res[column_name] = model_fn(permuted_x)
         return pd.DataFrame(res)
 
-    def __ablation_importance(self, model_fn, x, y, n_repetitions=50, loss_fn=mean_absolute_error):
+    def __ablation_importance(self, model_fn, x, y, n_repetitions=50):
         """Reference implementation of ablation importance.
 
         Returns
         -------
         DataFrame
         """
-        original_predictions = model_fn(x)
-        original_loss = loss_fn(y, original_predictions)
+
         results = pd.DataFrame.from_dict({
             seed: {
-                permuted_column_name: (loss_fn(y, y_hat_permuted) - original_loss)
+                permuted_column_name: self.__loss_fn(y, y_hat_permuted)
                 for permuted_column_name, y_hat_permuted
                 in self.__permutation_predictions(model_fn, x, seed).iteritems()
             }
             for seed in tqdm.tqdm(range(n_repetitions))
         }, orient='index')
         results.index.name = 'seed'
-        return results
+        return results-self.__original_loss, results
