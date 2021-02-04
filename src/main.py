@@ -108,7 +108,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 38
+    test = 40
     features_no = 2
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
     REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
@@ -122,9 +122,9 @@ if __name__ == "__main__":
 
     methods = {
         # 'fi': RFFeatureImportanceSelector(features_no),
-        'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        # 'pi2': fs.PISelector(features_no, seed=42),
-        'pi_all': fs.PermutationImportanceSelector(seed=42),
+        # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
+        'pi2': fs.PISelector(features_no, seed=42),
+        # 'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi2_all': fs.PISelector(seed=42)
         # 'sp': get_least_important_feature_by_sp
     }
@@ -204,18 +204,19 @@ if __name__ == "__main__":
                 metrics_fi_looc['walk'] = idx
                 metrics_fi_looc['model'] = method
                 metrics_fi_looc['ticker'] = ticker
-                missing_col_dict = {}
                 for r_idx, missing_col in enumerate(transformer.importance):
                     metrics_fi_looc['removed_column{0}'.format(r_idx)] = missing_col[0]
                     metrics_fi_looc['removed_column_imp{0}'.format(r_idx)] = missing_col[1]
-                    missing_col_dict['removed_column{0}'.format(r_idx)] = missing_col[0]
+                    missing_col_dict = (dict(
+                        dict(walk=idx, method=method, ticker=ticker, removed_column=missing_col[0]
+                             , feature_importance=missing_col[1], CI=missing_col[2], error=missing_col[3]
+                             , baseline_error=metric_single_baseline['MSE']
+                             , std_err=missing_col[4])))
+                    missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
 
-                add_score_to_metrics(metrics_fi_looc, score_looc)
-
-                missing_col_dict.update(dict({'walk': idx, 'method': method, 'ticker': ticker}))
-                missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
                 missing_columns.to_csv(REMOVED_COLUMNS_PATH, index=False)
 
+                add_score_to_metrics(metrics_fi_looc, score_looc)
                 metrics = metrics.append(metrics_fi_looc, ignore_index=True)
                 metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
 

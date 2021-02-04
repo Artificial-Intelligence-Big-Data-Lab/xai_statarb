@@ -23,7 +23,7 @@ class PISelector(FeatureSelectorBase):
         return columns
 
     def __compute_permutation_importance(self, X_test, y_cr_test, estimator):
-        imp_values, all_trials = self.__feature_importance_permutation(
+        imp_values, all_trials, all_trial_errors = self.__feature_importance_permutation(
             predict_method=estimator.predict,
             X=X_test.values,
             y=y_cr_test['label'].values,
@@ -31,11 +31,15 @@ class PISelector(FeatureSelectorBase):
             seed=self.__seed)
         all_feat_imp_df = pd.DataFrame(data=np.transpose(all_trials), columns=X_test.columns,
                                        index=range(0, self.__num_rounds))
+        all_trial_errors_df = pd.DataFrame(data=np.transpose(all_trial_errors), columns=X_test.columns,
+                                           index=range(0, self.__num_rounds))
         imp_ci = 1.96 * all_feat_imp_df.std(ddof=0) / np.sqrt(self.__num_rounds)
         permutation_importance = pd.DataFrame(
             dict(
                 feature_importance=all_feat_imp_df.mean(),
-                ci_fixed=imp_ci
+                ci_fixed=imp_ci,
+                errors=all_trial_errors_df.mean(),
+                std_errors=all_trial_errors_df.std()
             ),
         )
 
@@ -104,6 +108,7 @@ class PISelector(FeatureSelectorBase):
 
         mean_importance_values = np.zeros(X.shape[1])
         all_importance_values = np.zeros((X.shape[1], self.__num_rounds))
+        all_error_values = np.zeros((X.shape[1], self.__num_rounds))
 
         baseline = score_func(y, predict_method(X))
 
@@ -117,12 +122,13 @@ class PISelector(FeatureSelectorBase):
                     importance = (baseline - new_score) / baseline
                 else:
                     importance = (new_score - baseline) / baseline
-                # importance = baseline - new_score
                 mean_importance_values[col_idx] += importance
                 all_importance_values[col_idx, round_idx] = importance
+                all_error_values[col_idx, round_idx] = new_score
+
         mean_importance_values /= self.__num_rounds
 
-        return mean_importance_values, all_importance_values
+        return mean_importance_values, all_importance_values, all_error_values
 
 
 class PermutationImportanceSelector(FeatureSelectorBase):
