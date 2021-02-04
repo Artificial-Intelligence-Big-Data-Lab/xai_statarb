@@ -1,4 +1,5 @@
 from abc import ABC
+import pandas as pd
 
 
 class FeatureSelectorBase(ABC):
@@ -23,11 +24,14 @@ class BaseFeatureSelector(ABC):
         self.importance_ = None
         self._fn_select = None
 
-
     def select(self, all_columns):
         min_row = self._fn_select(self.importance_)
+        if min_row.empty:
+            return min_row, all_columns
         column = min_row.index.values
         columns = set(all_columns) - set(column)
+        if len(column) == len(all_columns):
+            return pd.DataFrame(), all_columns
         return min_row, columns
 
 
@@ -41,4 +45,5 @@ class SelectKBest(BaseFeatureSelector):
     def __init__(self, k):
         super().__init__()
         self._k = k
-        self._fn_select = lambda df: df.sort_values(by=['feature_importance'], ascending=[False]).tail(self._k)
+        self._fn_select = lambda df: df[df['feature_importance'] <= 0.0].sort_values(by=['feature_importance'],
+                                                                                     ascending=[False]).tail(self._k)
