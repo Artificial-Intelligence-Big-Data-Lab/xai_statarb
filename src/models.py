@@ -3,7 +3,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import TimeSeriesSplit, cross_validate
 
 
-def get_fit_regressor(x_train, y_cr_train, x_test, y_cr_test, context, columns=None,
+def get_fit_regressor(x_train, y_cr_train, x_test, y_cr_test, context=None, columns=None,
                       get_cross_validation_results=True):
     if columns is not None:
         X_train, y_train = x_train[columns].copy(), y_cr_train.copy()

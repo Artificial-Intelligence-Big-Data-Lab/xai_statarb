@@ -31,8 +31,8 @@ class WalkForward:
         while (self.__add_years(start_train, self.train_period_length) < self.end_date and (
                 idx < self.no_walks or self.no_walks is None)):
             idx = idx + 1
-            yield idx, utils.Set(idx=idx, start=start_train, end=self.__add_years(start_train,
-                                                                                  self.train_period_length)), utils.Set(
+            yield idx, Set(idx=idx, start=start_train, end=self.__add_years(start_train,
+                                                                                  self.train_period_length)), Set(
                 idx=idx, start=self.__add_years(start_train, self.train_period_length), end=np.min(
                     [self.__add_years(start_train, self.train_period_length + self.test_period_length), self.end_date]))
             start_train = self.__add_years(start_train, self.test_period_length)
