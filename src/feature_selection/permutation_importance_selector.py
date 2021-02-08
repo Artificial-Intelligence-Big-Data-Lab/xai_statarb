@@ -19,7 +19,7 @@ class PISelector(FeatureSelectorBase):
         permutation_importance_s = self.__compute_permutation_importance(X_test, y_test, estimator)
         self.__selector.importance_ = permutation_importance_s
         min_row, columns = self.__selector.select(X_test.columns)
-        self._importance = min_row.reset_index().values
+        self._importance = min_row.reset_index()
         return columns
 
     def __compute_permutation_importance(self, X_test, y_cr_test, estimator):
@@ -169,7 +169,7 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         )
         self.__selector.importance_ = imp
         min_row, columns = self.__selector.select(X_test.columns)
-        self._importance = min_row.reset_index().values
+        self._importance = min_row.reset_index()
         return columns
 
     @staticmethod
