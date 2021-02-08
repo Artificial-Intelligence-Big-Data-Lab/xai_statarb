@@ -4,47 +4,11 @@ import random
 import time
 
 import yfinance as yf
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import TimeSeriesSplit, cross_validate
 
 import feature_selection as fs
 from utils import *
 from walkforward import WalkForward
-
-
-def get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test, context, columns=None,
-                      get_cross_validation_results=True):
-    if columns is not None:
-        X_train, y_train = X_cr_train[columns].copy(), y_cr_train.copy()
-        X_test, y_test = X_cr_test[columns].copy(), y_cr_test.copy()
-    else:
-        X_train, y_train = X_cr_train.copy(), y_cr_train.copy()
-        X_test, y_test = X_cr_test.copy(), y_cr_test.copy()
-
-    print('train', X_train.shape, y_train.shape)
-    print('test', X_test.shape, y_test.shape)
-
-    regressor = RandomForestRegressor(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True,
-                                      random_state=42)
-    # regressor = Pipeline([('scaler', MinMaxScaler(feature_range=(-1, 1)))
-    #                          , ('svc', linear_model.TweedieRegressor( alpha=0.001))])
-    # # regressor = ExtraTreesRegressor(n_estimators=350, max_samples=0.4, max_features=1, oob_score=True, bootstrap=True, random_state=42)
-    # regressor.fit(X,y.values.ravel())
-    # # save_path= './LIME/models/{0}_cr_{1}_{2}_{3}.joblib'.format(context["ticker"],context["method"],context["start"].strftime("%Y-%m-%d"),context["end"].strftime("%Y-%m-%d"))
-    # # joblib.dump(regressor,save_path)
-
-    if get_cross_validation_results:
-        X, y = pd.concat([X_train, X_test]), pd.concat([y_train, y_test])
-
-        cv = TimeSeriesSplit(max_train_size=int(2 * len(X) / 3), n_splits=10)
-        score = cross_validate(regressor, X.values, y.values.ravel(),
-                               scoring=['r2', 'neg_mean_absolute_error', 'neg_mean_squared_error'], n_jobs=-1,
-                               verbose=0, cv=cv)
-    regressor.fit(X_train.values, y_train.values.ravel())
-    y_hat = regressor.predict(X_test.values)
-    y_test['predicted'] = y_hat.reshape(-1, 1)
-    print('test', X_test.shape, y_test.shape)
-    return regressor, y_test, score if get_cross_validation_results else None
+from models import get_fit_regressor
 
 
 def get_cumulative_returns(data: pd.DataFrame, ticker):
@@ -138,7 +102,7 @@ if __name__ == "__main__":
 
         start_test = test_set.start
 
-        for ticker in ['FP.PA', '0001.HK', '0003.HK', 'AAPL','AC.PA']:
+        for ticker in ['FP.PA', '0001.HK', '0003.HK', 'AAPL', 'AC.PA']:
 
             print('*' * 20, ticker, '*' * 20)
 
@@ -205,13 +169,14 @@ if __name__ == "__main__":
                 metrics_fi_looc['walk'] = idx
                 metrics_fi_looc['model'] = method
                 metrics_fi_looc['ticker'] = ticker
-                if (not transformer.importance.empty):
+                if not transformer.importance.empty:
                     for r_idx, missing_col in transformer.importance.iterrows():
                         metrics_fi_looc['removed_column{0}'.format(r_idx)] = missing_col['index']
                         metrics_fi_looc['removed_column_imp{0}'.format(r_idx)] = missing_col['feature_importance']
                         missing_col_dict = (dict(
                             dict(walk=idx, method=method, ticker=ticker, removed_column=missing_col[0]
-                                 , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed'], error=missing_col['errors']
+                                 , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed'],
+                                 error=missing_col['errors']
                                  , baseline_error=metric_single_baseline['MSE']
                                  , std_err=missing_col['std_errors'])))
                         missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)

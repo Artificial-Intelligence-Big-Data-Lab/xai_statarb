@@ -1,17 +1,10 @@
-from collections import namedtuple
-
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.metrics import r2_score
 
-Set = namedtuple('Set', ['idx', 'start', 'end'])
 
-
-
-
-
-def mda(y_cr_test):
+def mda(y_cr_test: pd.DataFrame):
     """ Mean Directional Accuracy """
 
     x = np.sign(y_cr_test['label'] - y_cr_test['label'].shift(1)) == np.sign(
@@ -41,9 +34,6 @@ def get_prediction_performance_results(y_cr_test, show=True, prefix=''):
     results['{0}_hit_count'.format(prefix) if prefix else 'hit_count'] = hc
     results['{0}_accuracy'.format(prefix) if prefix else 'accuracy'] = acc
 
-    if (show):
+    if show:
         print(results)
     return results
-
-
-

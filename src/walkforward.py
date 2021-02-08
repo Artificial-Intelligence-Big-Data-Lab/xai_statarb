@@ -3,6 +3,9 @@ from datetime import date
 import numpy as np
 
 import utils
+from collections import namedtuple
+
+Set = namedtuple('Set', ['idx', 'start', 'end'])
 
 
 class WalkForward:
@@ -13,7 +16,8 @@ class WalkForward:
         self.test_period_length = test_period_length
         self.no_walks = no_walks
 
-    def __addYears(self, d, years):
+    @staticmethod
+    def __add_years(d, years):
         try:
             # Return same day of the current year
             return d.replace(year=d.year + years)
@@ -24,10 +28,11 @@ class WalkForward:
     def get_walks(self):
         start_train = self.start_date
         idx = 0
-        while (self.__addYears(start_train, self.train_period_length) < self.end_date and (
+        while (self.__add_years(start_train, self.train_period_length) < self.end_date and (
                 idx < self.no_walks or self.no_walks is None)):
             idx = idx + 1
-            yield idx, utils.Set(idx=idx, start=start_train, end=self.__addYears(start_train, self.train_period_length)), utils.Set(
-                idx=idx, start=self.__addYears(start_train, self.train_period_length), end=np.min(
-                    [self.__addYears(start_train, self.train_period_length + self.test_period_length), self.end_date]))
-            start_train = self.__addYears(start_train, self.test_period_length)
+            yield idx, utils.Set(idx=idx, start=start_train, end=self.__add_years(start_train,
+                                                                                  self.train_period_length)), utils.Set(
+                idx=idx, start=self.__add_years(start_train, self.train_period_length), end=np.min(
+                    [self.__add_years(start_train, self.train_period_length + self.test_period_length), self.end_date]))
+            start_train = self.__add_years(start_train, self.test_period_length)
