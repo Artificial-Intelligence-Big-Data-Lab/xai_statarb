@@ -228,9 +228,9 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         return results - self.__original_loss, results
 
 
-class PIKLDivergenceSelector(PISelector):
+class PIJensenShannonSelector(PISelector):
     def __init__(self, k=0, num_rounds=50, seed=0):
         def scoring_function(y_true, y_pred):
-            return relative_entropy_from_samples(y_true, y_pred, discrete=False)
+            return jensen_shannon_divergence_from_samples(y_true, y_pred)
 
-        super(PIKLDivergenceSelector, self).__init__(k=0, num_rounds=num_rounds, seed=seed, metric=scoring_function)
+        super(PIJensenShannonSelector, self).__init__(k=0, num_rounds=num_rounds, seed=seed, metric=scoring_function)
