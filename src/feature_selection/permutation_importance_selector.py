@@ -1,9 +1,9 @@
-import numpy as np
-import pandas as pd
 import tqdm
+import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from .feature_selector_base import *
+from .utils import *
 
 
 class PISelector(FeatureSelectorBase):
@@ -14,11 +14,12 @@ class PISelector(FeatureSelectorBase):
         self.__seed = seed
         self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
 
-    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame, y_test: pd.DataFrame):
+    def fit_transform(self, estimator, x_train: pd.DataFrame, y: pd.DataFrame, x_test: pd.DataFrame,
+                      y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
-        permutation_importance_s = self.__compute_permutation_importance(X_test, y_test, estimator)
+        permutation_importance_s = self.__compute_permutation_importance(x_test, y_test, estimator)
         self.__selector.importance_ = permutation_importance_s
-        min_row, columns = self.__selector.select(X_test.columns)
+        min_row, columns = self.__selector.select(x_test.columns)
         self._importance = min_row.reset_index()
         return columns
 
@@ -224,4 +225,12 @@ class PermutationImportanceSelector(FeatureSelectorBase):
             for seed in tqdm.tqdm(range(n_repetitions))
         }, orient='index')
         results.index.name = 'seed'
-        return results-self.__original_loss, results
+        return results - self.__original_loss, results
+
+
+class PIKLDivergenceSelector(PISelector):
+    def __init__(self, k=0, num_rounds=50, seed=0):
+        def scoring_function(y_true, y_pred):
+            return relative_entropy_from_samples(y_true, y_pred, discrete=False)
+
+        super(PIKLDivergenceSelector, self).__init__(k=0, num_rounds=num_rounds, seed=seed, metric=scoring_function)
