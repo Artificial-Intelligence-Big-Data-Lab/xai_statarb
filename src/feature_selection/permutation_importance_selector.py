@@ -1,5 +1,4 @@
 import tqdm
-import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from .feature_selector_base import *
@@ -140,17 +139,17 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         self.__seed = seed
         self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
 
-    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
+    def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
                       y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
 
-        n_points = min(100, len(X_test))
-        sampled_index = X_test.sample(n_points, random_state=self.__seed).index
-        original_predictions = estimator.predict(X_test.loc[sampled_index])
+        n_points = min(100, len(x_test))
+        sampled_index = x_test.sample(n_points, random_state=self.__seed).index
+        original_predictions = estimator.predict(x_test.loc[sampled_index])
         self.__original_loss = self.__loss_fn(y_test.loc[sampled_index], original_predictions)
         res, error_res = self.__ablation_importance(
             model_fn=estimator.predict,
-            x=X_test.loc[sampled_index],
+            x=x_test.loc[sampled_index],
             y=y_test.loc[sampled_index],
             n_repetitions=self.__num_rounds,
         )
@@ -169,7 +168,7 @@ class PermutationImportanceSelector(FeatureSelectorBase):
             ),
         )
         self.__selector.importance_ = imp
-        min_row, columns = self.__selector.select(X_test.columns)
+        min_row, columns = self.__selector.select(x_test.columns)
         self._importance = min_row.reset_index()
         return columns
 
