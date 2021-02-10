@@ -5,10 +5,10 @@ from .feature_selector_base import FeatureSelectorBase
 
 class RFFeatureImportanceSelector(FeatureSelectorBase):
 
-    def fit_transform(self, estimator, X: pd.DataFrame, y: pd.DataFrame, X_test: pd.DataFrame,
+    def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
                       y_test: pd.DataFrame):
         print('*' * 20, 'feature importance', '*' * 20)
-        all_columns = X.columns
+        all_columns = x_train.columns
         feat_imp_s = pd.DataFrame(
             {'features': all_columns, "feature_importance": estimator.feature_importances_}).sort_values(
             'feature_importance', ascending=False)

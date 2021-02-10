@@ -2,7 +2,7 @@ import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from .feature_selector_base import *
-from .utils import *
+from .jensen_shannon import *
 
 
 class PISelector(FeatureSelectorBase):
@@ -13,7 +13,7 @@ class PISelector(FeatureSelectorBase):
         self.__seed = seed
         self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
 
-    def fit_transform(self, estimator, x_train: pd.DataFrame, y: pd.DataFrame, x_test: pd.DataFrame,
+    def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
                       y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
         permutation_importance_s = self.__compute_permutation_importance(x_test, y_test, estimator)
