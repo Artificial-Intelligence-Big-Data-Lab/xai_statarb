@@ -74,7 +74,7 @@ def add_context_information(metric_df, context, score, transformer: fs.FeatureSe
                                     , removed_column=missing_col['index']
                                     , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed']
                                     , error=missing_col['errors']
-                                    , baseline_error=metric_df['MSE']
+                                    , baseline_error=transformer.baseline_loss
                                     , std_err=missing_col['std_errors'])
             missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
             metric_df['removed_column{0}'.format(r_idx)] = missing_col['index']

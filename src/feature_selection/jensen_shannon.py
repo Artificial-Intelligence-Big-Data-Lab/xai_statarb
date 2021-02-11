@@ -3,7 +3,6 @@ import typing as tp
 import numpy as np
 import statsmodels.api as sm
 from cubature import cubature
-import numba
 
 
 ################################################################################
@@ -185,22 +184,3 @@ def _select_vectorized_log_fun_for_base(base: float):
         return np.log10
 
     raise ValueError('base not supported')
-
-
-spec = [('base', numba.float64)]
-
-
-@numba.experimental.jitclass(spec)
-class Logarithm:
-    def __init__(self, base):
-        self.base = base
-
-    def log(self, x):
-        if self.base == 2:
-            return np.log2(x)
-        if self.base == np.e:
-            return np.log(x)
-        if self.base == 10:
-            return np.log10(x)
-
-        raise ValueError('base not supported')

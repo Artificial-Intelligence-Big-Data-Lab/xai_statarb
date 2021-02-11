@@ -8,12 +8,18 @@ class FeatureSelectorBase(ABC):
         self._columns = None
         self._importance = None
         self._k = k
+        self._original_loss = None
+        self.name = None
 
     def transform(self, estimator, x_train, y_train, x_test, y_test):
         return self.fit_transform(estimator, x_train, y_train, x_test, y_test)
 
     def fit_transform(self, estimator, x_train, y_train, x_test, y_test):
         pass
+
+    @property
+    def baseline_loss(self):
+        return self._original_loss
 
     @property
     def importance(self):
