@@ -48,9 +48,17 @@ class AllAboveZeroSelector(BaseFeatureSelector):
         self._fn_select = lambda df: df[df['feature_importance'] <= 0.0]
 
 
-class SelectKBest(BaseFeatureSelector):
+class SelectKWorst(BaseFeatureSelector):
     def __init__(self, k):
         super().__init__()
         self._k = k
         self._fn_select = lambda df: df[df['feature_importance'] <= 0.0].sort_values(by=['feature_importance'],
                                                                                      ascending=[False]).tail(self._k)
+
+
+class SelectKBest(BaseFeatureSelector):
+    def __init__(self, k):
+        super().__init__()
+        self._k = k
+        self._fn_select = lambda df: df[df['feature_importance'] <= 0.0].sort_values(by=['feature_importance'],
+                                                                                     ascending=[False]).head(self._k)

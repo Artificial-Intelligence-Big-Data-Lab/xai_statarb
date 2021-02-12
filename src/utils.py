@@ -62,10 +62,14 @@ def add_context_information(metric_df, context, score, transformer: fs.FeatureSe
     metric_df['mean_r2'] = score['test_r2'].mean()
     metric_df['std_r2'] = score['test_r2'].std(ddof=1)
 
+    for col in context['all_columns']:
+        metric_df['{0}_count'.format(col)] = ''
+
     if context['method'] == 'baseline':
         for r_idx in range(0, 10):
             metric_df['removed_column{0}'.format(r_idx)] = ''
             metric_df['removed_column_imp{0}'.format(r_idx)] = ''
+
         return None
     elif not transformer.importance.empty:
         missing_columns = pd.DataFrame()
@@ -75,10 +79,12 @@ def add_context_information(metric_df, context, score, transformer: fs.FeatureSe
                                     , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed']
                                     , error=missing_col['errors']
                                     , baseline_error=transformer.baseline_loss
-                                    , std_err=missing_col['std_errors'])
+                                    , std_err=missing_col['std_errors']
+                                    , success_count=missing_col['success_count'])
             missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
             metric_df['removed_column{0}'.format(r_idx)] = missing_col['index']
             metric_df['removed_column_imp{0}'.format(r_idx)] = missing_col['feature_importance']
+            metric_df['{0}_count'.format(missing_col['index'])] = missing_col['success_count']
         return missing_columns
     else:
         return pd.DataFrame()

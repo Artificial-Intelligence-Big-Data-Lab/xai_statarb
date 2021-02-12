@@ -9,11 +9,10 @@ class PISelector(FeatureSelectorBase):
 
     def __init__(self, k=0, num_rounds=50, metric=mean_squared_error, seed=0):
         """
-
         Parameters
         ----------
-        k
-        num_rounds
+        k : number of features to be removed
+        num_rounds : number of trials for permutation importance, default 50
             metric : str, callable
             The metric for evaluating the feature importance through
             permutation. By default, the strings 'accuracy' is
@@ -22,11 +21,11 @@ class PISelector(FeatureSelectorBase):
             scoring function (e.g., `metric=scoring_func`) that
             accepts two arguments, y_true and y_pred, which have
             similar shape to the `y` array.
-        seed
+        seed : seed for random shuffling
         """
         super().__init__(k)
         self.__seed = seed
-        self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
+        self.__selector = AllAboveZeroSelector() if k == 0 else SelectKWorst(k)
         self.name = "pi2_{0}".format("all" if k == 0 else k)
 
         if not isinstance(num_rounds, int):
@@ -71,19 +70,20 @@ class PISelector(FeatureSelectorBase):
             predict_method=estimator.predict,
             x_test=x_test.values,
             y_test=y_test['label'].values,
-            metric=self.__loss,
             seed=self.__seed)
         all_feat_imp_df = pd.DataFrame(data=np.transpose(all_trials), columns=x_test.columns,
                                        index=range(0, self.__num_rounds))
         all_trial_errors_df = pd.DataFrame(data=np.transpose(all_trial_errors), columns=x_test.columns,
                                            index=range(0, self.__num_rounds))
+        count_check = all_trial_errors_df.applymap(lambda x: 1 if x <= self._original_loss else 0)
         imp_ci = 1.96 * all_feat_imp_df.std(ddof=0) / np.sqrt(self.__num_rounds)
         permutation_importance = pd.DataFrame(
             dict(
                 feature_importance=all_feat_imp_df.mean(),
                 ci_fixed=imp_ci,
                 errors=all_trial_errors_df.mean(),
-                std_errors=all_trial_errors_df.std()
+                std_errors=all_trial_errors_df.std(),
+                success_count=count_check.sum()
             ),
         )
 
@@ -144,7 +144,7 @@ class PermutationImportanceSelector(FeatureSelectorBase):
         self.__loss_fn = loss_fn
         self.__num_rounds = num_rounds
         self.__seed = seed
-        self.__selector = AllAboveZeroSelector() if k == 0 else SelectKBest(k)
+        self.__selector = AllAboveZeroSelector() if k == 0 else SelectKWorst(k)
         self.name = "pi_{0}".format("all" if k == 0 else k)
 
     def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
@@ -163,7 +163,7 @@ class PermutationImportanceSelector(FeatureSelectorBase):
             n_repetitions=self.__num_rounds,
         )
         mean_imp = res.mean()
-
+        count_check = error_res.applymap(lambda x: 1 if x <= self._original_loss else 0)
         # 95% CI based upon z-distribution approximation
         # of t-distribution using MLE estimate of variance
         imp_ci = 1.96 * res.std(ddof=0) / np.sqrt(self.__num_rounds)
@@ -173,7 +173,8 @@ class PermutationImportanceSelector(FeatureSelectorBase):
                 feature_importance=mean_imp,
                 ci_fixed=imp_ci,
                 errors=error_res.mean(),
-                std_errors=error_res.std()
+                std_errors=error_res.std(),
+                success_count=count_check.sum()
             ),
         )
         self.__selector.importance_ = imp

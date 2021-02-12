@@ -31,10 +31,10 @@ if __name__ == "__main__":
     methods = {
         # 'fi': RFFeatureImportanceSelector(features_no),
         # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        # 'pi2': fs.PISelector(features_no, seed=42),
+        'pi2': fs.PISelector(features_no, seed=42),
         # 'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi2_all': fs.PISelector(seed=42),
-        'pi_kl_all': fs.PIJensenShannonSelector(seed=42)
+        # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42)
         # 'sp': get_least_important_feature_by_sp
     }
 
@@ -67,7 +67,8 @@ if __name__ == "__main__":
                 continue
             print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
             print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
-            context = dict(walk=idx, ticker=ticker, method='baseline', start=train_set.start, end=train_set.end)
+            context = dict(walk=idx, ticker=ticker, method='baseline', start=train_set.start, end=train_set.end
+                           , all_columns=X_cr_test.columns)
             baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test)
 
             metric_single_baseline = get_prediction_performance_results(b_y_cr_test, False)
