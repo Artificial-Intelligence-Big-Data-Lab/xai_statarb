@@ -15,7 +15,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 50
+    test = 51
     features_no = 1
     no_walks = 1
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
@@ -32,10 +32,12 @@ if __name__ == "__main__":
         # 'fi': RFFeatureImportanceSelector(features_no),
         # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
         # 'pi2': fs.PISelector(features_no, seed=42),
-        'pi_all': fs.PermutationImportanceSelector(seed=42),
+        # 'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi2_all': fs.PISelector(seed=42),
         # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42)
-        # 'sp': get_least_important_feature_by_sp
+        # 'sp': get_least_important_feature_by_sp,
+        "pi3": fs.PISelectorKBest(seed=42),
+        "pi4": fs.PermutationImportanceSelectorKBest(seed=42)
     }
 
     for idx, train_set, test_set in wf.get_walks():

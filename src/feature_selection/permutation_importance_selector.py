@@ -137,13 +137,19 @@ class PISelector(PISelectorBase):
         return all_feat_imp_df, all_trial_errors_df
 
 
+class PISelectorKBest(PISelector):
+    def __init__(self, num_rounds=50, metric=mean_squared_error, seed=42):
+        super(PISelectorKBest, self).__init__(k=1, num_rounds=num_rounds, metric=metric, seed=seed)
+        self._selector = SelectKBest(k=1)
+        self.name = "pi3_1"
+
+
 class PermutationImportanceSelector(PISelectorBase):
 
     def __init__(self, k=0, num_rounds=50, loss_fn=mean_absolute_error, seed=0):
         selector = AllAboveZeroSelector() if k == 0 else SelectKWorst(k)
         super().__init__(k, num_rounds, selector, loss_fn, seed)
         self.name = "pi_{0}".format("all" if k == 0 else k)
-
 
     @staticmethod
     def __pointwise_absolute_error(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
@@ -205,3 +211,10 @@ class PermutationImportanceSelector(PISelectorBase):
         }, orient='index')
         results.index.name = 'seed'
         return results - self._original_loss, results
+
+
+class PermutationImportanceSelectorKBest(PermutationImportanceSelector):
+    def __init__(self, num_rounds=50, metric=mean_absolute_error, seed=42):
+        super(PermutationImportanceSelectorKBest, self).__init__(k=1, num_rounds=num_rounds, loss_fn=metric, seed=seed)
+        self._selector = SelectKBest(k=1)
+        self.name = "pi4_1"
