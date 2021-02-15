@@ -4,6 +4,17 @@ import numpy as np
 import statsmodels.api as sm
 from cubature import cubature
 
+from src.feature_selection import PISelector
+
+
+class PIJensenShannonSelector(PISelector):
+    def __init__(self, k=0, num_rounds=50, seed=0):
+        self.name = "pi-jensen-shannon_{0}".format("all" if k == 0 else k)
+
+        super(PIJensenShannonSelector, self).__init__(k=k, num_rounds=num_rounds, seed=seed
+                                                      , metric=jensen_shannon_divergence_from_samples)
+
+
 
 ################################################################################
 # Jensen-Shannon Divergence

@@ -25,6 +25,30 @@ class FeatureSelectorBase(ABC):
     def importance(self):
         return self._importance
 
+    def _feature_importance_permutation(self,estimator_fn, x_test, y_test):
+        """Feature importance imputation via permutation importance
+        Parameters
+        ----------
+        estimator_fn : prediction function
+            A callable function that predicts the target values
+            from X.
+        x_test : NumPy array, shape = [n_samples, n_features]
+            Dataset, where n_samples is the number of samples and
+            n_features is the number of features.
+        y_test : NumPy array, shape = [n_samples]
+            Target values.
+
+
+        Returns
+        ---------
+        res, res_errors : NumPy arrays.
+          The first array, mean_importance_values has shape [n_features, ] and
+          contains the importance values for all features.
+          The shape of the second array is [n_features, num_rounds] and contains
+          the feature importance for each repetition. If num_rounds=1,
+          it contains the same values as the first array, mean_importance_values."""
+        pass
+
 
 class BaseFeatureSelector(ABC):
     def __init__(self):
