@@ -25,7 +25,7 @@ class FeatureSelectorBase(ABC):
     def importance(self):
         return self._importance
 
-    def _feature_importance_permutation(self,estimator_fn, x_test, y_test):
+    def _feature_importance_permutation(self, estimator_fn, x_test, y_test):
         """Feature importance imputation via permutation importance
         Parameters
         ----------
@@ -51,38 +51,47 @@ class FeatureSelectorBase(ABC):
 
 
 class BaseFeatureSelector(ABC):
-    def __init__(self):
+    def __init__(self, threshold=0.0):
         self.importance_ = None
         self._fn_select = None
+        self._threshold = threshold
 
     def select(self, all_columns):
         min_row = self._fn_select(self.importance_)
         if min_row.empty:
-            return min_row, all_columns
+            return min_row, all_columns, "No column selected"
         column = min_row.index.values
         columns = set(all_columns) - set(column)
         if len(column) == len(all_columns):
-            return pd.DataFrame(), all_columns
-        return min_row, columns
+            return pd.DataFrame(), all_columns, "Selecting all columns"
+        return min_row, columns, None
 
 
 class AllAboveZeroSelector(BaseFeatureSelector):
     def __init__(self):
         super().__init__()
-        self._fn_select = lambda df: df[df['feature_importance'] <= 0.0]
+        self._fn_select = lambda df: df[df['feature_importance'] <= self._threshold]
+
+
+class AllAboveThresholdSelector(BaseFeatureSelector):
+    def __init__(self, threshold):
+        super().__init__(threshold=threshold)
+        self._fn_select = lambda df: df[df['feature_importance'] <= self._threshold]
 
 
 class SelectKWorst(BaseFeatureSelector):
     def __init__(self, k):
         super().__init__()
         self._k = k
-        self._fn_select = lambda df: df[df['feature_importance'] <= 0.0].sort_values(by=['feature_importance'],
-                                                                                     ascending=[False]).tail(self._k)
+        self._fn_select = lambda df: df[df['feature_importance'] <= self._threshold].sort_values(
+            by=['feature_importance'],
+            ascending=[False]).tail(self._k)
 
 
 class SelectKBest(BaseFeatureSelector):
     def __init__(self, k):
         super().__init__()
         self._k = k
-        self._fn_select = lambda df: df[df['feature_importance'] <= 0.0].sort_values(by=['feature_importance'],
-                                                                                     ascending=[False]).head(self._k)
+        self._fn_select = lambda df: df[df['feature_importance'] <= self._threshold].sort_values(
+            by=['feature_importance'],
+            ascending=[False]).head(self._k)

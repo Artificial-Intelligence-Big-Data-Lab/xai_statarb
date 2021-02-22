@@ -7,7 +7,7 @@ import numpy as np
 
 class PISelectorBase(FeatureSelectorBase):
 
-    def __init__(self, k=0, num_rounds=50, selector=None, metric=mean_squared_error, seed=0):
+    def __init__(self, k=0, num_rounds=50, selector: BaseFeatureSelector = None, metric=mean_squared_error, seed=0):
         """
         Parameters
         ----------
@@ -61,9 +61,9 @@ class PISelectorBase(FeatureSelectorBase):
         permutation_importance_s = self.__compute_permutation_importance(x_test, y_test, estimator)
 
         self._selector.importance_ = permutation_importance_s
-        min_row, columns = self._selector.select(x_test.columns)
+        min_row, columns, selection_error = self._selector.select(x_test.columns)
         self._importance = min_row.reset_index()
-        return columns
+        return columns, selection_error
 
     def __compute_permutation_importance(self, x_test, y_test, estimator):
         res, res_error = self._feature_importance_permutation(estimator_fn=estimator.predict, x_test=x_test,
