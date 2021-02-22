@@ -3,13 +3,35 @@ from abc import ABC
 import pandas as pd
 
 
+class BaseFeatureSelector(ABC):
+    def __init__(self, threshold=0.0):
+        self.importance_ = None
+        self._fn_select = None
+        self._threshold = threshold
+
+    def select(self, all_columns):
+        min_row = self._fn_select(self.importance_)
+        if min_row.empty:
+            return min_row, all_columns, "No column selected"
+        column = min_row.index.values
+        columns = set(all_columns) - set(column)
+        if len(column) == len(all_columns):
+            return pd.DataFrame(), all_columns, "Selecting all columns"
+        return min_row, columns, None
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+
 class FeatureSelectorBase(ABC):
-    def __init__(self, k=1):
+    def __init__(self, k=1, selector: BaseFeatureSelector = None):
         self._columns = None
         self._importance = None
         self._k = k
         self._original_loss = None
         self.name = None
+        self._selector = selector
 
     def transform(self, estimator, x_train, y_train, x_test, y_test):
         return self.fit_transform(estimator, x_train, y_train, x_test, y_test)
@@ -24,6 +46,10 @@ class FeatureSelectorBase(ABC):
     @property
     def importance(self):
         return self._importance
+
+    @property
+    def threshold(self):
+        return self._selector.threshold
 
     def _feature_importance_permutation(self, estimator_fn, x_test, y_test):
         """Feature importance imputation via permutation importance
@@ -48,23 +74,6 @@ class FeatureSelectorBase(ABC):
           the feature importance for each repetition. If num_rounds=1,
           it contains the same values as the first array, mean_importance_values."""
         pass
-
-
-class BaseFeatureSelector(ABC):
-    def __init__(self, threshold=0.0):
-        self.importance_ = None
-        self._fn_select = None
-        self._threshold = threshold
-
-    def select(self, all_columns):
-        min_row = self._fn_select(self.importance_)
-        if min_row.empty:
-            return min_row, all_columns, "No column selected"
-        column = min_row.index.values
-        columns = set(all_columns) - set(column)
-        if len(column) == len(all_columns):
-            return pd.DataFrame(), all_columns, "Selecting all columns"
-        return min_row, columns, None
 
 
 class AllAboveZeroSelector(BaseFeatureSelector):

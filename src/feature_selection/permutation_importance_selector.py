@@ -23,7 +23,7 @@ class PISelectorBase(FeatureSelectorBase):
             similar shape to the `y` array.
         seed : seed for random shuffling
         """
-        super().__init__(k)
+        super().__init__(k, selector)
         self._seed = seed
 
         if not isinstance(num_rounds, int):
@@ -31,7 +31,6 @@ class PISelectorBase(FeatureSelectorBase):
         if num_rounds < 1:
             raise ValueError('num_rounds must be greater than 1.')
 
-        self._selector = selector
         self._num_rounds = num_rounds
 
         if not (metric in ('r2', 'accuracy') or hasattr(metric, '__call__')):
