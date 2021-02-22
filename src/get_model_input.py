@@ -46,7 +46,7 @@ def get_data_for_ticker(ticker: str, date_start, date_end):
     data_df = df1.loc[[i for i in df1.index if i[1] == ticker]].copy()
 
     if data_df.empty:
-        return data_df
+        return data_df, data_df
 
     data_df.reset_index(inplace=True)
     if 'Date' in data_df.columns:

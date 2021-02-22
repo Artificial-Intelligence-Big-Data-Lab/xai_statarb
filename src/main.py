@@ -15,13 +15,15 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 51
+    test = 53
     features_no = 1
     no_walks = 1
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
+    ALL_METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_all_{0}.csv'.format(test)
     REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
 
     metrics = pd.read_csv(METRICS_OUTPUT_PATH) if os.path.exists(METRICS_OUTPUT_PATH) else pd.DataFrame()
+    metrics_all = pd.DataFrame()
 
     missing_columns = pd.read_csv(REMOVED_COLUMNS_PATH) if os.path.exists(REMOVED_COLUMNS_PATH) else pd.DataFrame()
 
@@ -36,8 +38,8 @@ if __name__ == "__main__":
         # 'pi2_all': fs.PISelector(seed=42),
         # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42)
         # 'sp': get_least_important_feature_by_sp,
-        "pi3": fs.PISelectorKBest(seed=42),
-        "pi4": fs.PermutationImportanceSelectorKBest(seed=42)
+        "pi_mse": fs.PISelectorKBest(seed=42),
+        "pi_mae": fs.PermutationImportanceSelectorKBest(seed=42)
     }
 
     for idx, train_set, test_set in wf.get_walks():
@@ -48,7 +50,8 @@ if __name__ == "__main__":
 
         start_test = test_set.start
 
-        for ticker in ['FP.PA', '0001.HK', '0003.HK', 'AAPL', 'AC.PA']:
+        for ticker in ['FP.PA', '0001.HK', '0003.HK', 'AAPL', 'AC.PA',
+                       'KHC']:
 
             print('*' * 20, ticker, '*' * 20)
 
@@ -74,20 +77,28 @@ if __name__ == "__main__":
             baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test)
 
             metric_single_baseline = get_prediction_performance_results(b_y_cr_test, False)
-            _ = add_context_information(metric_single_baseline, context, score)
+            metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
+
+            metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
+
             metrics = metrics.append(metric_single_baseline, ignore_index=True)
             metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
 
             for method, transformer in methods.items():
-                columns = transformer.fit_transform(baseline, X_cr_train, y_cr_train, X_cr_test, y_cr_test)
+                columns, selection_error = transformer.fit_transform(baseline, X_cr_train, y_cr_train, X_cr_test,
+                                                                     y_cr_test)
                 looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test,
                                                                                   y_cr_test,
                                                                                   columns=columns)
                 metrics_fi_looc = get_prediction_performance_results(looc_y_cr_test, False)
 
-                context.update({"method": method})
-                missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc,
-                                                           transformer=transformer)
+                context.update(dict(method=method, selection_error=selection_error))
+                merged_series = metrics_baseline.copy()
+                merged_series = add_metrics_information(metrics_fi_looc, context, score_looc,
+                                                        transformer=transformer, copy_to=merged_series)
+                metrics_fi_looc, missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc,
+                                                                            transformer=transformer)
+
                 if missing_col_dict is not None and not missing_col_dict.empty:
                     missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
                     missing_columns.to_csv(REMOVED_COLUMNS_PATH, index=False)
@@ -95,7 +106,11 @@ if __name__ == "__main__":
                 metrics = metrics.append(metrics_fi_looc, ignore_index=True)
                 metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
 
+                metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
+                metrics_all.to_csv(ALL_METRICS_OUTPUT_PATH, index=False)
+
             end_time = time.perf_counter()
             print('{0} took {1} s'.format(ticker, end_time - start_time))
     print('*' * 20, 'DONE', '*' * 20)
     metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
+    metrics_all.to_csv(ALL_METRICS_OUTPUT_PATH, index=False)
