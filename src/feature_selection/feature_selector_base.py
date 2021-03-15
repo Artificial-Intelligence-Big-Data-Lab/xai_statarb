@@ -5,12 +5,11 @@ import pandas as pd
 
 class BaseFeatureSelector(ABC):
     def __init__(self, threshold=0.0):
-        self.importance_ = None
         self._fn_select = None
         self._threshold = threshold
 
-    def select(self, all_columns):
-        min_row = self._fn_select(self.importance_)
+    def select(self, all_columns, importance_df: pd.DataFrame):
+        min_row = self._fn_select(importance_df)
         if min_row.empty:
             return min_row, all_columns, "No column selected"
         column = min_row.index.values
@@ -18,6 +17,20 @@ class BaseFeatureSelector(ABC):
         if len(column) == len(all_columns):
             return pd.DataFrame(), all_columns, "Selecting all columns"
         return min_row, columns, None
+
+    def select_enumerate(self, all_columns, importance_df: pd.DataFrame):
+        min_row = self._fn_select(importance_df)
+        error_msg = None
+        if min_row.empty:
+            min_row = importance_df.sort_values(by='feature_importance', ascending=True).head(1)
+            error_msg = "No column selected"
+        idx = 0
+        for column, row in min_row.iterrows():
+            columns = set(all_columns) - set([column])
+            return_row = pd.Series(row)
+            return_row["index"] = column
+            yield idx, return_row, columns, error_msg
+            idx = idx + 1
 
     @property
     def threshold(self):
@@ -27,7 +40,6 @@ class BaseFeatureSelector(ABC):
 class FeatureSelectorBase(ABC):
     def __init__(self, k=1, selector: BaseFeatureSelector = None):
         self._columns = None
-        self._importance = None
         self._k = k
         self._original_loss = None
         self.name = None
@@ -42,10 +54,6 @@ class FeatureSelectorBase(ABC):
     @property
     def baseline_loss(self):
         return self._original_loss
-
-    @property
-    def importance(self):
-        return self._importance
 
     @property
     def threshold(self):
@@ -76,7 +84,7 @@ class FeatureSelectorBase(ABC):
         pass
 
 
-class AllAboveZeroSelector(BaseFeatureSelector):
+class AllBellowZeroSelector(BaseFeatureSelector):
     def __init__(self):
         super().__init__()
         self._fn_select = lambda df: df[df['feature_importance'] <= self._threshold]
@@ -89,8 +97,8 @@ class AllAboveThresholdSelector(BaseFeatureSelector):
 
 
 class SelectKWorst(BaseFeatureSelector):
-    def __init__(self, k):
-        super().__init__()
+    def __init__(self, k, threshold=0.0):
+        super().__init__(threshold=threshold)
         self._k = k
         self._fn_select = lambda df: df[df['feature_importance'] <= self._threshold].sort_values(
             by=['feature_importance'],

@@ -51,8 +51,8 @@ def check_if_processed(metrics, ticker, walk):
     return len(metrics[(metrics['ticker'] == ticker) & (metrics['walk'] == walk)]) == 4
 
 
-def add_metrics_information(metric_original: pd.Series, context: dict, score,
-                            transformer: fs.FeatureSelectorBase = None, copy_to: pd.Series = None):
+def add_metrics_information(metric_original: pd.Series, context: dict, score, importance_series: pd.Series = None,
+                            copy_to=None):
     method_suffix = "_baseline" if context['method'] == 'baseline' else "_pi"
 
     final_series = metric_original.copy().add_suffix(method_suffix)
@@ -67,26 +67,34 @@ def add_metrics_information(metric_original: pd.Series, context: dict, score,
 
     metric_series = add_score_to_metrics(score, method_suffix)
 
-    metric_series['selection_error'] = context['selection_error'] \
-        if 'selection_error' in context.keys() and context['selection_error'] is not None else None
-
     if context['method'] != 'baseline':
-        for col in context['all_columns']:
-            metric_series['{0}_count'.format(col)] = ''
-            metric_series['{0}_CI'.format(col)] = ''
-            metric_series['{0}_FI'.format(col)] = ''
-            metric_series['{0}_error'.format(col)] = ''
-            metric_series['{0}_std_error'.format(col)] = ''
-            metric_series['threshold']=''
+        metric_series['selection_error'] = context['selection_error'] \
+            if context['method'] != 'baseline' and 'selection_error' in context.keys() and context[
+            'selection_error'] is not None else None
+        # for col in context['all_columns']:
+        #     metric_series['{0}_count'.format(col)] = ''
+        #     metric_series['{0}_CI'.format(col)] = ''
+        #     metric_series['{0}_FI'.format(col)] = ''
+        #     metric_series['{0}_error'.format(col)] = ''
+        #     metric_series['{0}_std_error'.format(col)] = ''
+        #     metric_series['threshold'] = ''
+        metric_series['index'] = ''
+        metric_series['removed_count'] = ''
+        metric_series['removed_CI'] = ''
+        metric_series['removed_FI'] = ''
+        metric_series['removed_error'] = ''
+        metric_series['removed_std_error'] = ''
+        metric_series['removed_column'] = ''
 
-    if transformer is not None and not transformer.importance.empty:
-        metric_series['threshold'] = transformer.threshold
-        for r_idx, missing_col in transformer.importance.iterrows():
-            metric_series['{0}_CI'.format(missing_col['index'])] = missing_col['ci_fixed']
-            metric_series['{0}_FI'.format(missing_col['index'])] = missing_col['feature_importance']
-            metric_series['{0}_count'.format(missing_col['index'])] = missing_col['success_count']
-            metric_series['{0}_error'.format(missing_col['index'])] = missing_col['errors']
-            metric_series['{0}_std_error'.format(missing_col['index'])] = missing_col['std_errors']
+    if importance_series is not None and len(importance_series) != 0:
+        metric_series['index'] = context["index"]
+        missing_col = pd.Series(importance_series)
+        metric_series['removed_column'] = missing_col['index']
+        metric_series['removed_CI'] = missing_col['ci_fixed']
+        metric_series['removed_FI'] = missing_col['feature_importance']
+        metric_series['removed_count'] = missing_col['success_count']
+        metric_series['removed_error'] = missing_col['errors']
+        metric_series['removed_std_error'] = missing_col['std_errors']
     final_series = final_series.append(pd.Series(metric_series))
     return final_series
 
@@ -104,7 +112,8 @@ def add_score_to_metrics(score, method_suffix=''):
     return metric_series.to_dict()
 
 
-def add_context_information(metric_series: pd.Series, context: dict, score, transformer: fs.FeatureSelectorBase = None):
+def add_context_information(metric_series: pd.Series, context: dict, score, importance_series: pd.Series = None,
+                            baseline_loss=None):
     metric_series = metric_series.append(pd.Series(add_score_to_metrics(score)))
     metric_series['walk'] = context['walk']
     metric_series['model'] = context['method']
@@ -112,33 +121,35 @@ def add_context_information(metric_series: pd.Series, context: dict, score, tran
     metric_series['selection_error'] = context['selection_error'] \
         if 'selection_error' in context.keys() and context['selection_error'] is not None else None
 
-    for col in context['all_columns']:
-        metric_series['{0}_count'.format(col)] = ''
+    # for col in context['all_columns']:
+    #     metric_series['{0}_count'.format(col)] = ''
 
     if context['method'] == 'baseline':
-        for r_idx in range(0, 10):
-            metric_series['removed_column{0}'.format(r_idx)] = ''
-            metric_series['removed_column_imp{0}'.format(r_idx)] = ''
-        metric_series['threshold'] = ''
+        # for r_idx in range(0, 10):
+        #     metric_series['removed_column{0}'.format(r_idx)] = ''
+        #     metric_series['removed_column_imp{0}'.format(r_idx)] = ''
+        metric_series['index'] = ''
         return metric_series, None
-    elif not transformer.importance.empty:
-        missing_columns = pd.DataFrame()
-        for r_idx, missing_col in transformer.importance.iterrows():
-            missing_col_dict = dict(walk=context['walk'], method=context['method'], ticker=context['ticker']
-                                    , removed_column=missing_col['index']
-                                    , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed']
-                                    , error=missing_col['errors']
-                                    , baseline_error=transformer.baseline_loss
-                                    , std_err=missing_col['std_errors']
-                                    , success_count=missing_col['success_count']
-                                    , threshold=transformer.threshold
-                                    )
-            missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
+    elif importance_series is not None and len(importance_series) != 0:
 
-            metric_series['removed_column{0}'.format(r_idx)] = missing_col['index']
-            metric_series['removed_column_imp{0}'.format(r_idx)] = missing_col['feature_importance']
-            metric_series['{0}_count'.format(missing_col['index'])] = missing_col['success_count']
-        metric_series['threshold'] = transformer.threshold
+        missing_columns = pd.DataFrame()
+        missing_col = pd.Series(importance_series)
+        r_idx = context["index"]
+        missing_col_dict = dict(walk=context['walk'], method=context['method'], ticker=context['ticker']
+                                , removed_column=missing_col['index']
+                                , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed']
+                                , error=missing_col['errors']
+                                , baseline_error=baseline_loss
+                                , std_err=missing_col['std_errors']
+                                , success_count=missing_col['success_count']
+                                , index=context["index"]
+                                )
+        missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
+
+        # metric_series['removed_column{0}'.format(r_idx)] = missing_col['index']
+        # metric_series['removed_column_imp{0}'.format(r_idx)] = missing_col['feature_importance']
+        # metric_series['{0}_count'.format(missing_col['index'])] = missing_col['success_count']
+        metric_series['index'] = context["index"]
         return metric_series, missing_columns
     else:
         return metric_series, pd.DataFrame()
