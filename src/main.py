@@ -15,7 +15,7 @@ if __name__ == "__main__":
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 61
+    test = 10
     features_no = 1
     no_walks = 7
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
@@ -37,12 +37,14 @@ if __name__ == "__main__":
         print('*' * 20)
 
     methods = {
-        'fi': fs.RFFeatureImportanceSelector(features_no),
+        # 'fi': fs.RFFeatureImportanceSelector(features_no),
+        # 'sp': fs.LIMEFeatureImportanceSelector(features_no),
         # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
         # 'pi2': fs.PISelector(features_no, seed=42),
         # 'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi3_all': fs.PISelectorUnormalized(seed=42),
-        # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42)
+        # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42),
+        'pi_wd_all': fs.WassersteinFeatureImportanceSelector(seed=42),
         # 'sp': get_least_important_feature_by_sp,
         # "pi_mse": fs.PISelectorKBest(seed=42),
         # "pi_mae": fs.PermutationImportanceSelectorKBest(seed=42)

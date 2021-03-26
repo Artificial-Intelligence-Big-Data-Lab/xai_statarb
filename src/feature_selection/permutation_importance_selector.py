@@ -56,7 +56,7 @@ class PISelectorBase(FeatureSelectorBase):
     def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
                       y_test: pd.DataFrame):
         print('*' * 20, 'permutation importance', '*' * 20)
-        self._original_loss = self._loss(y_test, estimator.predict(x_test))
+        self._original_loss = self._loss(y_test.values, estimator.predict(x_test))
         permutation_importance_s = self.__compute_permutation_importance(x_test, y_test, estimator)
 
         for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns,
