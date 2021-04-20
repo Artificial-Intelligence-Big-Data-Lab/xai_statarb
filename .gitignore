@@ -132,3 +132,4 @@ dmypy.json
 .idea
 LIME/data/LOOC_metrics_*.csv
 LIME/data/LOOC_missing_columns_*.csv
+*.xlsx
