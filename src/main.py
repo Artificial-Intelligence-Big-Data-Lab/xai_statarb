@@ -10,30 +10,24 @@ from walkforward import WalkForward
 import feature_selection as fs
 import argparse
 
-
+DATA_PATH = '../LIME/data/'
 
 
 def main(args):
-    constituents = pd.read_csv('../LIME/data/constituents.csv')
+    constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
     num_stocks = len(tickers)
 
     random.seed(30)
-    test = 11
-    features_no = 1
-    no_walks = 7
 
-    METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
-    ALL_METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_all_{0}.csv'.format(test)
-    REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
+    metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_{0}.csv'.format(args.test_no)
+    all_metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_all_{0}.csv'.format(args.test_no)
+    removed_columns_path = DATA_PATH + 'LOOC_missing_columns_cr_{0}.csv'.format(args.test_no)
 
-    metrics = pd.read_csv(METRICS_OUTPUT_PATH) if os.path.exists(METRICS_OUTPUT_PATH) else pd.DataFrame()
-    metrics_all = pd.DataFrame()
-
-    missing_columns = pd.read_csv(REMOVED_COLUMNS_PATH) if os.path.exists(REMOVED_COLUMNS_PATH) else pd.DataFrame()
-
-    wf = WalkForward(datetime.datetime.strptime('2007-01-01', '%Y-%m-%d'),
-                     datetime.datetime.strptime('2018-01-01', '%Y-%m-%d'), 4, no_walks=no_walks)
+    wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
+                     datetime.datetime.strptime(args.end_date, '%Y-%m-%d'),
+                     train_period_length=args.train_length, test_period_length=args.test_length,
+                     no_walks=args.no_walks)
 
     for idx, train_set, test_set in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
@@ -42,18 +36,22 @@ def main(args):
         print('*' * 20)
 
     methods = {
-        # 'fi': fs.RFFeatureImportanceSelector(features_no),
-        # 'sp': fs.LIMEFeatureImportanceSelector(features_no),
+        'mdi': fs.RFFeatureImportanceSelector(args.no_features),
+        'sp': fs.LIMEFeatureImportanceSelector(args.no_features),
         # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        # 'pi2': fs.PISelector(features_no, seed=42),
+        'pi': fs.PISelector(args.no_features, seed=42, num_rounds=args.num_rounds),
         # 'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi3_all': fs.PISelectorUnormalized(seed=42),
         # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42),
-        'pi_wd_all': fs.WassersteinFeatureImportanceSelector(seed=42),
-        # 'sp': get_least_important_feature_by_sp,
+        'pi_wd': fs.WassersteinFeatureImportanceSelector(seed=42),
         # "pi_mse": fs.PISelectorKBest(seed=42),
         # "pi_mae": fs.PermutationImportanceSelectorKBest(seed=42)
     }
+
+    metrics = pd.read_csv(metrics_output_path) if os.path.exists(metrics_output_path) else pd.DataFrame()
+    metrics_all = pd.DataFrame()
+
+    missing_columns = pd.read_csv(removed_columns_path) if os.path.exists(removed_columns_path) else pd.DataFrame()
 
     for idx, train_set, test_set in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
@@ -97,9 +95,9 @@ def main(args):
             metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
 
             metrics = metrics.append(metric_single_baseline, ignore_index=True)
-            metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
+            metrics.to_csv(metrics_output_path, index=False)
 
-            for method, transformer in methods.items():
+            for method, transformer in {args.data_type: methods[args.data_type]}.items():
                 for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
                                                                                                y_cr_train, X_cr_test,
                                                                                                y_cr_test):
@@ -119,20 +117,69 @@ def main(args):
 
                     if missing_col_dict is not None and not missing_col_dict.empty:
                         missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
-                        missing_columns.to_csv(REMOVED_COLUMNS_PATH, index=False)
+                        missing_columns.to_csv(removed_columns_path, index=False)
 
                     metrics = metrics.append(metrics_fi_looc, ignore_index=True)
-                    metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
+                    metrics.to_csv(metrics_output_path, index=False)
 
                     metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
-                    metrics_all.to_csv(ALL_METRICS_OUTPUT_PATH, index=False)
+                    metrics_all.to_csv(all_metrics_output_path, index=False)
 
             end_time = time.perf_counter()
             print('{0} took {1} s'.format(ticker, end_time - start_time))
     print('*' * 20, 'DONE', '*' * 20)
-    metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
-    metrics_all.to_csv(ALL_METRICS_OUTPUT_PATH, index=False)
+    metrics.to_csv(metrics_output_path, index=False)
+    metrics_all.to_csv(all_metrics_output_path, index=False)
 
 
 if __name__ == "__main__":
-    main(None)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--data_type',
+        choices=['mdi', 'sp', 'pi', 'pi_wd'],
+        default='pi',
+        type=str)
+
+    parser.add_argument(
+        '--start_date',
+        help='Start date "%Y-%m-%d" format',
+        default='2007-01-01',
+        type=str)
+    parser.add_argument(
+        '--end_date',
+        help='End date "%Y-%m-%d" format',
+        default='2018-01-01',
+        type=str)
+    parser.add_argument(
+        '--no_walks',
+        help='Number of walks',
+        default='7',
+        type=int)
+    parser.add_argument(
+        '--no_features',
+        help='Number of features to remove',
+        default=1,
+        type=int)
+    parser.add_argument(
+        '--train_length',
+        help='Number of training data expressed in years',
+        default=4,
+        type=int)
+    parser.add_argument(
+        '--test_length',
+        help='Number of test data expressed in years',
+        default=1,
+        type=int)
+    parser.add_argument(
+        '--num_rounds',
+        help='Number of permutation rounds',
+        default=50,
+        type=int)
+    parser.add_argument(
+        '--test_no',
+        help='Test number to identify the experiments',
+        default=11,
+        type=int)
+    args_in = parser.parse_args()
+    main(args_in)
