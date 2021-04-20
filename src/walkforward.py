@@ -1,9 +1,7 @@
+from collections import namedtuple
 from datetime import date
 
 import numpy as np
-
-import utils
-from collections import namedtuple
 
 Set = namedtuple('Set', ['idx', 'start', 'end'])
 
