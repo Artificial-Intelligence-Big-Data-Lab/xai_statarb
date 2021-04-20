@@ -8,8 +8,12 @@ from models import get_fit_regressor
 from utils import *
 from walkforward import WalkForward
 import feature_selection as fs
+import argparse
 
-if __name__ == "__main__":
+
+
+
+def main(args):
     constituents = pd.read_csv('../LIME/data/constituents.csv')
     tickers = constituents['Ticker']
     num_stocks = len(tickers)
@@ -18,6 +22,7 @@ if __name__ == "__main__":
     test = 11
     features_no = 1
     no_walks = 7
+
     METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_{0}.csv'.format(test)
     ALL_METRICS_OUTPUT_PATH = '../LIME/data/LOOC_metrics_cr_all_{0}.csv'.format(test)
     REMOVED_COLUMNS_PATH = '../LIME/data/LOOC_missing_columns_cr_{0}.csv'.format(test)
@@ -59,8 +64,8 @@ if __name__ == "__main__":
         start_test = test_set.start
 
         for ticker in ['FP.PA', '0001.HK', '0003.HK'
-            # , 'AAPL', 'AC.PA',
-            #            'KHC'
+                       # , 'AAPL', 'AC.PA',
+                       #            'KHC'
                        ]:
 
             print('*' * 20, ticker, '*' * 20)
@@ -127,3 +132,7 @@ if __name__ == "__main__":
     print('*' * 20, 'DONE', '*' * 20)
     metrics.to_csv(METRICS_OUTPUT_PATH, index=False)
     metrics_all.to_csv(ALL_METRICS_OUTPUT_PATH, index=False)
+
+
+if __name__ == "__main__":
+    main(None)
