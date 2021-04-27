@@ -3,8 +3,6 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.metrics import r2_score
 
-import feature_selection as fs
-
 
 def mda(y_cr_test: pd.DataFrame):
     """ Mean Directional Accuracy """
@@ -23,7 +21,7 @@ def get_prediction_performance_results(y_cr_test, show=True, suffix=''):
     results = pd.Series()
     metric_func = {
         'MSE': mean_squared_error,
-        'r2_score': r2_score,
+        # 'r2_score': r2_score,
         # 'explained_variance':explained_variance_score,
         'MAE': mean_absolute_error,
         # 'MAPE':mean_absolute_percentage_error

@@ -29,9 +29,10 @@ def main(args):
                      train_period_length=args.train_length, test_period_length=args.test_length,
                      no_walks=args.no_walks)
 
-    for idx, train_set, test_set in wf.get_walks():
+    for idx, train_set, validation_set, test_set in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
         print(train_set.start, train_set.end)
+        print(validation_set.start, validation_set.end)
         print(test_set.start, test_set.end)
         print('*' * 20)
 
@@ -47,19 +48,20 @@ def main(args):
         # "pi_mse": fs.PISelectorKBest(seed=42),
         # "pi_mae": fs.PermutationImportanceSelectorKBest(seed=42)
     }
-
     metrics = pd.read_csv(metrics_output_path) if os.path.exists(metrics_output_path) else pd.DataFrame()
     metrics_all = pd.DataFrame()
 
     missing_columns = pd.read_csv(removed_columns_path) if os.path.exists(removed_columns_path) else pd.DataFrame()
 
-    for idx, train_set, test_set in wf.get_walks():
+    for idx, train_set, validation_set, test_set in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
         print(train_set.start, train_set.end)
+        print(validation_set.start, validation_set.end)
         print(test_set.start, test_set.end)
         print('*' * 20)
 
         start_test = test_set.start
+        validation_start = validation_set.start
 
         for ticker in ['FP.PA', '0001.HK', '0003.HK'
                        # , 'AAPL', 'AC.PA',
@@ -78,16 +80,19 @@ def main(args):
             if x_df.empty or y_df.empty:
                 continue
 
-            X_cr_train, y_cr_train = x_df.loc[:start_test], y_df.loc[:start_test]
-            X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
+            X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
+            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
+                                                                                      validation_start:start_test]
+            # X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
 
-            if len(X_cr_train) == 0 or len(y_cr_test) == 0:
+            if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
                 continue
             print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
-            print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
+            print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
+
             context = dict(walk=idx, ticker=ticker, method='baseline', start=train_set.start, end=train_set.end,
-                           all_columns=X_cr_test.columns)
-            baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test)
+                           all_columns=X_cr_validation.columns)
+            baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_validation, y_cr_validation)
 
             metric_single_baseline = get_prediction_performance_results(b_y_cr_test, False)
             metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
@@ -99,11 +104,13 @@ def main(args):
 
             for method, transformer in {args.data_type: methods[args.data_type]}.items():
                 for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
-                                                                                               y_cr_train, X_cr_test,
-                                                                                               y_cr_test):
+                                                                                               y_cr_train,
+                                                                                               X_cr_validation,
+                                                                                               y_cr_validation):
 
-                    looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test,
-                                                                                      y_cr_test,
+                    looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
+                                                                                      X_cr_validation,
+                                                                                      y_cr_validation,
                                                                                       columns=columns)
                     metrics_fi_looc = get_prediction_performance_results(looc_y_cr_test, False)
 
@@ -163,14 +170,19 @@ if __name__ == "__main__":
         type=int)
     parser.add_argument(
         '--train_length',
-        help='Number of training data expressed in years',
-        default=4,
-        type=int)
+        help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
+        default='4Y',
+        type=str)
+    parser.add_argument(
+        '--validation_length',
+        help='Number of validation data expressed in years(Y) or months (M). Default value 1Y',
+        default='1Y',
+        type=str)
     parser.add_argument(
         '--test_length',
-        help='Number of test data expressed in years',
-        default=1,
-        type=int)
+        help='Number of test data expressed in years(Y) or months (M). Default value 1Y',
+        default='1Y',
+        type=str)
     parser.add_argument(
         '--num_rounds',
         help='Number of permutation rounds',
