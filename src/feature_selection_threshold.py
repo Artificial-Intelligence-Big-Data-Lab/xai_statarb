@@ -72,11 +72,9 @@ def get_errors_df_by_walk_3(metrics_df, thresholds, walk, metric='MSE', worst=Fa
 
 
 def get_optimal_threshold(df_worst, df_best, df_running, walk):
-    idx_worst = df_worst['error_diff_avg'].argmax()
-    idx_best = df_best['error_diff_avg'].argmax()
-    idx_running = df_running['error_diff_avg'].argmax()
-    # idx_running_wd = df_running_wd['error_diff_avg'].argmax()
-    # idx_wd = df_wd['error_diff_avg'].argmax()
+    idx_worst = get_optimal_threshold_strategy(df_worst)
+    idx_best = get_optimal_threshold_strategy(df_best)
+    idx_running = get_optimal_threshold_strategy(df_running)
     return {'walk': walk, 'threshold_best': df_best.iloc[idx_best]['threshold']
         , 'error_best': df_best.iloc[idx_best]['error_diff_avg']
         , 'no_improvements_best': df_best.iloc[idx_best]['positive_count']
@@ -91,3 +89,8 @@ def get_optimal_threshold(df_worst, df_best, df_running, walk):
         , 'ratio_running': df_running.iloc[idx_running]['positive_count'] / df_running.iloc[idx_running][
             'removed_count']
             }
+
+
+def get_optimal_threshold_strategy(metrics_df):
+    th_index = metrics_df['error_diff_avg'].argmax()
+    return th_index
