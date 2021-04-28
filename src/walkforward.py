@@ -38,7 +38,8 @@ class WalkForward:
             self.__test_months = int(test_period_length.upper().replace('Y', '')) * 12
 
         if end_date is None:
-            end_date = start_date + relativedelta(months=(self.__validation_months+self.__train_months)*no_walks+self.__test_months)
+            end_date = start_date + relativedelta(
+                months=(self.__validation_months + self.__train_months) * no_walks + self.__test_months)
 
         self.start_date = start_date
         self.end_date = end_date
@@ -72,11 +73,15 @@ class WalkForward:
 
         start_test = start_validation + relativedelta(months=+self.__validation_months)
 
-        end_test = start_test + relativedelta(months=+self.__test_months)+relativedelta(days=-1)
+        end_test = start_test + relativedelta(months=+self.__test_months) + relativedelta(days=-1)
 
         while (end_test < self.end_date) and (idx < self.no_walks or self.no_walks is None):
             idx = idx + 1
-            yield idx, Set(idx=idx, start=start_train, end=start_validation + relativedelta(days=-1)) \
-                , Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)) \
-                , Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date]))
+            yield idx, Set(idx=idx, start=start_train, end=start_validation + relativedelta(days=-1)), \
+                Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)), \
+                Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date]))
+
             start_train = start_test
+            start_validation = start_train + relativedelta(months=+self.__train_months)
+            start_test = start_validation + relativedelta(months=+self.__validation_months)
+            end_test = start_test + relativedelta(months=+self.__test_months) + relativedelta(days=-1)
