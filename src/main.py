@@ -9,6 +9,7 @@ from utils import *
 from walkforward import WalkForward
 import feature_selection as fs
 import argparse
+from feature_selection_threshold import *
 
 DATA_PATH = '../LIME/data/'
 
@@ -23,6 +24,12 @@ def main(args):
     metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_{0}.csv'.format(args.test_no)
     all_metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_all_{0}.csv'.format(args.test_no)
     removed_columns_path = DATA_PATH + 'LOOC_missing_columns_cr_{0}.csv'.format(args.test_no)
+    thresholds_path = DATA_PATH + 'LOOC_thresholds_{0}.csv'.format(args.test_no)
+
+    thresholds = pd.DataFrame(columns={'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best'
+        , 'threshold_worst', 'error_worst', 'no_improvements_worst', 'ratio_worst'
+        , 'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
+                                       })
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
                      datetime.datetime.strptime(args.end_date, '%Y-%m-%d'),
@@ -40,7 +47,7 @@ def main(args):
         'mdi': fs.RFFeatureImportanceSelector(args.no_features),
         'sp': fs.LIMEFeatureImportanceSelector(args.no_features),
         # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        'pi': fs.PISelector(args.no_features, seed=42, num_rounds=args.num_rounds),
+        'pi': fs.PISelector(seed=42, num_rounds=args.num_rounds),
         # 'pi_all': fs.PermutationImportanceSelector(seed=42),
         # 'pi3_all': fs.PISelectorUnormalized(seed=42),
         # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42),
@@ -63,10 +70,7 @@ def main(args):
         start_test = test_set.start
         validation_start = validation_set.start
 
-        for ticker in ['FP.PA', '0001.HK', '0003.HK'
-                       # , 'AAPL', 'AC.PA',
-                       #            'KHC'
-                       ]:
+        for ticker in ['FP.PA', '0001.HK', '0003.HK']:
 
             print('*' * 20, ticker, '*' * 20)
 
@@ -134,9 +138,18 @@ def main(args):
 
             end_time = time.perf_counter()
             print('{0} took {1} s'.format(ticker, end_time - start_time))
+
+        fix_th_best = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), idx, worst=False)
+        fix_th_worst = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), idx, worst=True)
+        running_th = get_errors_df_by_walk_3(metrics_all, np.arange(0.0, -0.03, -0.0001), idx, worst=False)
+        threshold_row = get_optimal_threshold(fix_th_worst, fix_th_best, running_th, idx)
+        thresholds = thresholds.append(threshold_row, ignore_index=True)
+        thresholds.to_csv(thresholds_path, index=False)
+
     print('*' * 20, 'DONE', '*' * 20)
     metrics.to_csv(metrics_output_path, index=False)
     metrics_all.to_csv(all_metrics_output_path, index=False)
+    thresholds.to_csv(thresholds_path, index=False)
 
 
 if __name__ == "__main__":
@@ -194,4 +207,5 @@ if __name__ == "__main__":
         default=11,
         type=int)
     args_in = parser.parse_args()
+
     main(args_in)
