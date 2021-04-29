@@ -6,7 +6,6 @@ import feature_selection as fs
 from feature_selection_threshold import *
 from get_model_input import *
 from models import get_fit_regressor
-from utils import _cleanup_test_folder
 from statarbregression import *
 from walkforward import WalkForward
 
@@ -20,7 +19,6 @@ def main(args):
     num_stocks = len(tickers)
 
     prediction_params = {
-        'start_date': args.start_date,
         'train': args.train_length,
         'val': args.validation_length,
         'test': args.test_length,
@@ -39,19 +37,14 @@ def main(args):
         , 'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
                                        })
 
+    env = Environment(tickers=tickers)
+
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
                      datetime.datetime.strptime(args.end_date, '%Y-%m-%d'),
                      train_period_length=args.train_length,
                      validation_period_length=args.validation_length,
                      test_period_length=args.test_length,
                      no_walks=args.no_walks)
-
-    for idx, train_set, validation_set, test_set in wf.get_walks():
-        print('*' * 20, idx, '*' * 20)
-        print(train_set.start, train_set.end)
-        print(validation_set.start, validation_set.end)
-        print(test_set.start, test_set.end)
-        print('*' * 20)
 
     methods = {
         'mdi': fs.RFFeatureImportanceSelector(args.no_features),
@@ -69,9 +62,6 @@ def main(args):
     metrics_all = pd.DataFrame()
 
     missing_columns = pd.read_csv(removed_columns_path) if os.path.exists(removed_columns_path) else pd.DataFrame()
-    env = Environment()
-
-    setup_folders('LIME')
 
     for idx, train_set, validation_set, test_set in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
@@ -79,6 +69,8 @@ def main(args):
         print(validation_set.start, validation_set.end)
         print(test_set.start, test_set.end)
         print('*' * 20)
+        env.cleanup()
+        env.walk = test_set
 
         start_test = test_set.start
         validation_start = validation_set.start

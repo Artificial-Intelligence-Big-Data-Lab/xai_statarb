@@ -1,48 +1,9 @@
-import glob
-import os
-import shutil
 import sys
 import time
-from pathlib import Path
 
-import numpy as np
-import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-
-def rmse(y, p):
-    r"""Root Mean Square Error.
-    .. math::
-        RMSE(\mathbf{y}, \mathbf{p}) = \sqrt{MSE(\mathbf{y}, \mathbf{p})},
-    with
-    .. math::
-        MSE(\mathbf{y}, \mathbf{p}) = |S| \sum_{i \in S} (y_i - p_i)^2
-    Parameters
-    ----------
-    y : array-like of shape [n_samples, ]
-        ground truth.
-    p : array-like of shape [n_samples, ]
-        predicted labels.
-    Returns
-    -------
-    z: float
-        root mean squared error.
-    """
-    z = y - p
-    return np.sqrt(np.mean(np.multiply(z, z)))
-
-
-def mda(y_cr_test: pd.DataFrame):
-    """ Mean Directional Accuracy """
-
-    x = np.sign(y_cr_test['label'] - y_cr_test['label'].shift(1)) == np.sign(
-        y_cr_test['predicted'] - y_cr_test['label'].shift(1))
-    return np.count_nonzero(x.values.astype('int')) / len(x[~x.isnull()])
-
-
-def hit_count(y_cr_test):
-    x = (np.sign(y_cr_test['predicted']) == np.sign(y_cr_test['label'])).astype(int)
-    return np.count_nonzero(x.values), np.count_nonzero(x.values) / len(x)
+from metrics import *
 
 
 def get_prediction_performance_results(y_cr_test, show=True, suffix=''):
@@ -181,40 +142,6 @@ def add_context_information(metric_series: pd.Series, context: dict, score, impo
         return metric_series, pd.DataFrame()
 
 
-def setup_folders(prediction_method):
-    if not Path('./' + prediction_method + '/').exists():
-        os.mkdir('./' + prediction_method + '/')
-
-    if not Path('./' + prediction_method + '/single_data/').exists():
-        os.mkdir('./' + prediction_method + '/single_data/')
-
-    test_folder = './' + prediction_method + '/test/'
-    if not Path(test_folder).exists():
-        os.mkdir(test_folder)
-
-    statistical_arbitrage_folder = './' + prediction_method + '/StatisticalArbitrage/'
-
-    if not Path(statistical_arbitrage_folder).exists():
-        os.mkdir(statistical_arbitrage_folder)
-    else:
-
-        for the_file in os.listdir(statistical_arbitrage_folder):
-            file_path = os.path.join(statistical_arbitrage_folder, the_file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print(e)
-
-
-def _cleanup_test_folder(test_folder, files):
-    for fnombre in files:
-        if os.path.exists(test_folder + fnombre):
-            os.remove(test_folder + fnombre)
-
-
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()
@@ -264,34 +191,6 @@ def print_time(t0, message='', **kwargs):
     h, m = divmod(m, 60)
 
     safe_print(message + '%02d:%02d:%02d' % (h, m, s), **kwargs)
-
-
-def get_folders(folder_path):
-    folders = []
-    stri = "./{0}/StatisticalArbitrage/*-*ARIMASINGLE2*_output".format(folder_path)
-
-    for folder in glob.glob(stri):
-        print(folder)
-        folders.append(folder)
-    return folders
-
-
-def computecumsum(series):
-    xspredsimple = np.array(series.values.flatten().tolist())
-    mean_return_by_day = np.array(series.values.flatten().tolist()).mean()
-    xspred = xspredsimple.cumsum()
-    ipred = np.argmax(np.maximum.accumulate(xspred) - xspred)
-    if ipred == 0:
-        jpred = 0
-    else:
-        jpred = np.argmax(xspred[:ipred])
-
-    mddpred = xspred[jpred] - xspred[ipred]
-
-    computed_return = sum(series.values.flatten().tolist())
-    romad = sum(series.values.flatten().tolist()) / mddpred
-
-    return mddpred, computed_return, romad, xspred, ipred, jpred, mean_return_by_day
 
 
 def compute_yearly_drawdown(series, window=252):
@@ -501,6 +400,3 @@ def compute_ranks_migliori(df_input: pd.DataFrame, active=5,
     dftot_4['Rank'] = - dftot_4.groupby('Date')[sort_by_labels['Predicted']].rank(ascending=True, method='dense')
 
     return dftot_2, dftot_4
-
-
-

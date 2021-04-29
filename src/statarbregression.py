@@ -1,22 +1,30 @@
+import os
+import shutil
+from pathlib import Path
+
+import matplotlib as plt
 from sklearn import exceptions
 
 from utils import *
-import matplotlib as plt
+from walkforward import Set
 
 
 class Environment:
-    __SINGLE_FOLDER = '/single_data/'
-    __parameters = {}
 
-    def __init__(self, parameters, tickers):
-        self.__test_folder = 'LIME/test/'
-        self.__parameters = parameters
+    def __init__(self, tickers, base_folder='../LIME'):
+        self.__base_folder = base_folder
+        self.__test_folder = base_folder + '/test/'
         self.__file_names = ['.csv' + ticker if '.csv' not in ticker else ticker for ticker in tickers]
-        self.__set_data_folder_path()
+        self.__setup_folders(base_folder)
+        self.__walk=None
 
     @property
-    def data_folder(self):
-        return self.__parameters['method'] + self.__SINGLE_FOLDER
+    def walk(self):
+        return self.__walk
+
+    @walk.setter
+    def walk(self, value: Set):
+        self.__walk = value
 
     @property
     def test_folder(self):
@@ -24,7 +32,7 @@ class Environment:
 
     @property
     def output_folder(self):
-        output_folder = "/StatisticalArbitrage/" + self.__parameters["start_date"].strftime('%Y-%m-%d')
+        output_folder = self.__statistical_arbitrage_folder + self.__walk.start.strftime('%Y-%m-%d')
         my_file = Path(output_folder)
         if not my_file.exists():
             os.mkdir(output_folder)
@@ -40,21 +48,56 @@ class Environment:
     #         os.remove(write_path)
     #     return write_path
 
+    # def get_folders(folder_path):
+    #     folders = []
+    #     stri = "./{0}/StatisticalArbitrage/*-*ARIMASINGLE2*_output".format(folder_path)
+    #
+    #     for folder in glob.glob(stri):
+    #         print(folder)
+    #         folders.append(folder)
+    #     return folders
+
+
     def write_predictions_to_test(self, ticker, data: pd.DataFrame):
         data.to_csv("{0}{1}.csv".format(self.__test_folder, ticker))
 
-    def _cleanup_folder(self, test_folder, files):
+    @staticmethod
+    def _cleanup_folder(test_folder, files):
         for ticker in files:
             if os.path.exists(test_folder + ticker):
                 os.remove(test_folder + ticker)
 
     def cleanup(self):
-        self._cleanup_test_folder(self.test_folder, self.company_names)
-        self._cleanup_test_folder(self.data_folder, self.company_names)
+        self._cleanup_folder(self.test_folder, self.company_names)
+        # self._cleanup_folder(self.data_folder, self.company_names)
 
     @property
     def company_names(self):
         return self.__file_names
+
+    def __setup_folders(self, prediction_method):
+        if not Path('./' + prediction_method + '/').exists():
+            os.mkdir('./' + prediction_method + '/')
+
+        test_folder = './' + prediction_method + '/test/'
+        if not Path(test_folder).exists():
+            os.mkdir(test_folder)
+
+        self.__statistical_arbitrage_folder = './' + prediction_method + '/StatisticalArbitrage/'
+
+        if not Path(self.__statistical_arbitrage_folder).exists():
+            os.mkdir(self.__statistical_arbitrage_folder)
+        else:
+
+            for the_file in os.listdir(self.__statistical_arbitrage_folder):
+                file_path = os.path.join(self.__statistical_arbitrage_folder, the_file)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print(e)
 
 
 def compute_mdd(returns):
