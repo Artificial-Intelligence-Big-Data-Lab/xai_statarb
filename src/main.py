@@ -1,15 +1,14 @@
+import argparse
 import datetime
-import os
 import random
-import time
 
+import feature_selection as fs
+from feature_selection_threshold import *
 from get_model_input import *
 from models import get_fit_regressor
-from utils import *
+from utils import _cleanup_test_folder
+from statarbregression import *
 from walkforward import WalkForward
-import feature_selection as fs
-import argparse
-from feature_selection_threshold import *
 
 DATA_PATH = '../LIME/data/'
 
@@ -17,7 +16,16 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
+    tickers = ['FP.PA', '0001.HK', '0003.HK']
     num_stocks = len(tickers)
+
+    prediction_params = {
+        'start_date': args.start_date,
+        'train': args.train_length,
+        'val': args.validation_length,
+        'test': args.test_length,
+        'walks': args.no_walks,
+    }
 
     random.seed(30)
 
@@ -33,7 +41,9 @@ def main(args):
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
                      datetime.datetime.strptime(args.end_date, '%Y-%m-%d'),
-                     train_period_length=args.train_length, test_period_length=args.test_length,
+                     train_period_length=args.train_length,
+                     validation_period_length=args.validation_length,
+                     test_period_length=args.test_length,
                      no_walks=args.no_walks)
 
     for idx, train_set, validation_set, test_set in wf.get_walks():
@@ -59,6 +69,9 @@ def main(args):
     metrics_all = pd.DataFrame()
 
     missing_columns = pd.read_csv(removed_columns_path) if os.path.exists(removed_columns_path) else pd.DataFrame()
+    env = Environment()
+
+    setup_folders('LIME')
 
     for idx, train_set, validation_set, test_set in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
@@ -70,7 +83,7 @@ def main(args):
         start_test = test_set.start
         validation_start = validation_set.start
 
-        for ticker in ['FP.PA', '0001.HK', '0003.HK']:
+        for ticker in tickers:
 
             print('*' * 20, ticker, '*' * 20)
 
@@ -87,7 +100,6 @@ def main(args):
             X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
             X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
                                                                                       validation_start:start_test]
-            # X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
 
             if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
                 continue
@@ -145,6 +157,37 @@ def main(args):
         threshold_row = get_optimal_threshold(fix_th_worst, fix_th_best, running_th, idx)
         thresholds = thresholds.append(threshold_row, ignore_index=True)
         thresholds.to_csv(thresholds_path, index=False)
+
+        total_df = pd.DataFrame()
+        for ticker in tickers:
+            x_df, y_df = get_data_for_ticker(ticker, train_set.start, test_set.end)
+
+            if x_df.empty or y_df.empty:
+                continue
+
+            X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
+            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
+                                                                                      validation_start:start_test]
+            X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
+
+            if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
+                continue
+            baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test)
+
+            looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
+                                                                              X_cr_test, y_cr_test,
+                                                                              columns=columns)
+            df = X_cr_test.copy()
+            df = pd.concat([df, y_cr_test], axis=1)
+            df = df.join(b_y_cr_test, rsuffix="_baseline")
+            df = df.join(looc_y_cr_test, rsuffix="_best")
+            if not df.empty:
+                total_df = pd.concat([total_df, df], axis=0)
+
+        strategy1 = StatArbRegression(total_df, 'predicted')
+        strategy1.compute_metrics(output_folder=env.output_folder)
+        strategy1.generate_signals(output_folder=env.output_folder)
+        strategy1.plot_returns(output_folder=env.output_folder, parameters=prediction_params)
 
     print('*' * 20, 'DONE', '*' * 20)
     metrics.to_csv(metrics_output_path, index=False)

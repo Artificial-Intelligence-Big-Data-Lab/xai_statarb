@@ -94,3 +94,4 @@ def get_optimal_threshold(df_worst, df_best, df_running, walk):
 def get_optimal_threshold_strategy(metrics_df):
     th_index = metrics_df['error_diff_avg'].argmax()
     return th_index
+
