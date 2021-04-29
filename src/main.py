@@ -16,14 +16,6 @@ def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
     tickers = ['FP.PA', '0001.HK', '0003.HK']
-    num_stocks = len(tickers)
-
-    prediction_params = {
-        'train': args.train_length,
-        'val': args.validation_length,
-        'test': args.test_length,
-        'walks': args.no_walks,
-    }
 
     random.seed(30)
 
@@ -37,7 +29,7 @@ def main(args):
         , 'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
                                        })
 
-    env = Environment(tickers=tickers)
+    env = Environment(tickers=tickers, args=args)
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
                      datetime.datetime.strptime(args.end_date, '%Y-%m-%d'),
@@ -63,17 +55,17 @@ def main(args):
 
     missing_columns = pd.read_csv(removed_columns_path) if os.path.exists(removed_columns_path) else pd.DataFrame()
 
-    for idx, train_set, validation_set, test_set in wf.get_walks():
+    for idx, walk in wf.get_walks():
         print('*' * 20, idx, '*' * 20)
-        print(train_set.start, train_set.end)
-        print(validation_set.start, validation_set.end)
-        print(test_set.start, test_set.end)
+        print(walk.train.start, walk.train.end)
+        print(walk.validation.start, walk.validation.end)
+        print(walk.test.start, walk.test.end)
         print('*' * 20)
         env.cleanup()
-        env.walk = test_set
+        env.walk = walk
 
-        start_test = test_set.start
-        validation_start = validation_set.start
+        start_test = walk.test.start
+        validation_start = walk.validation.start
 
         for ticker in tickers:
 
@@ -84,7 +76,7 @@ def main(args):
                 continue
 
             start_time = time.perf_counter()
-            x_df, y_df = get_data_for_ticker(ticker, train_set.start, test_set.end)
+            x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
 
             if x_df.empty or y_df.empty:
                 continue
@@ -98,7 +90,7 @@ def main(args):
             print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
             print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
 
-            context = dict(walk=idx, ticker=ticker, method='baseline', start=train_set.start, end=train_set.end,
+            context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
                            all_columns=X_cr_validation.columns)
             baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_validation, y_cr_validation)
 
@@ -152,7 +144,7 @@ def main(args):
 
         total_df = pd.DataFrame()
         for ticker in tickers:
-            x_df, y_df = get_data_for_ticker(ticker, train_set.start, test_set.end)
+            x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
 
             if x_df.empty or y_df.empty:
                 continue
@@ -179,7 +171,7 @@ def main(args):
         strategy1 = StatArbRegression(total_df, 'predicted')
         strategy1.compute_metrics(output_folder=env.output_folder)
         strategy1.generate_signals(output_folder=env.output_folder)
-        strategy1.plot_returns(output_folder=env.output_folder, parameters=prediction_params)
+        strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 
     print('*' * 20, 'DONE', '*' * 20)
     metrics.to_csv(metrics_output_path, index=False)

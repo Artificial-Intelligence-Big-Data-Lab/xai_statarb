@@ -5,6 +5,8 @@ from dateutil.relativedelta import relativedelta
 
 Set = namedtuple('Set', ['idx', 'start', 'end'])
 
+Walk = namedtuple('Walk', ['train', 'validation', 'test'])
+
 
 class WalkForward:
     def __init__(self, start_date, end_date=None, train_period_length='4Y', validation_period_length='1Y',
@@ -48,24 +50,6 @@ class WalkForward:
         self.test_period_length = test_period_length
         self.no_walks = no_walks
 
-    # @staticmethod
-    # def __add_years(d, years):
-    #     try:
-    #         # Return same day of the current year
-    #         return d.replace(year=d.year + years)
-    #     except ValueError:
-    #         # If not same day, it will return other, i.e.  February 29 to March 1 etc.
-    #         return d + (date(d.year + years, 1, 1) - date(d.year, 1, 1))
-    #
-    # @staticmethod
-    # def __add_months(d, years):
-    #     try:
-    #         # Return same day of the current year
-    #         return d.replace(year=d.months + years)
-    #     except ValueError:
-    #         # If not same day, it will return other, i.e.  February 29 to March 1 etc.
-    #         return d + (date(d.year + years, 1, 1) - date(d.year, 1, 1))
-
     def get_walks(self):
         start_train = self.start_date
         idx = 0
@@ -77,9 +61,9 @@ class WalkForward:
 
         while (end_test < self.end_date) and (idx < self.no_walks or self.no_walks is None):
             idx = idx + 1
-            yield idx, Set(idx=idx, start=start_train, end=start_validation + relativedelta(days=-1)), \
-                Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)), \
-                Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date]))
+            yield idx, Walk(train=Set(idx=idx, start=start_train, end=start_validation + relativedelta(days=-1)), \
+                validation=Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)), \
+                test=Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date])))
 
             start_train = start_test
             start_validation = start_train + relativedelta(months=+self.__train_months)

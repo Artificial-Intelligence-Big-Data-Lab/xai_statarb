@@ -6,25 +6,35 @@ import matplotlib as plt
 from sklearn import exceptions
 
 from utils import *
-from walkforward import Set
+from walkforward import Walk
 
 
 class Environment:
 
-    def __init__(self, tickers, base_folder='../LIME'):
+    def __init__(self, tickers, args, base_folder='../LIME'):
         self.__base_folder = base_folder
         self.__test_folder = base_folder + '/test/'
         self.__file_names = ['.csv' + ticker if '.csv' not in ticker else ticker for ticker in tickers]
         self.__setup_folders(base_folder)
-        self.__walk=None
+        self.__walk = None
+        self.prediction_params = {
+            'train': args.train_length,
+            'val': args.validation_length,
+            'test': args.test_length,
+            'walks': args.no_walks,
+        }
 
     @property
     def walk(self):
         return self.__walk
 
     @walk.setter
-    def walk(self, value: Set):
+    def walk(self, value: Walk):
         self.__walk = value
+        self.prediction_params.update(
+            dict(train_start=value.train.start,
+                 validation_start=value.validation.start,
+                 test_start=value.test.start))
 
     @property
     def test_folder(self):
@@ -56,7 +66,6 @@ class Environment:
     #         print(folder)
     #         folders.append(folder)
     #     return folders
-
 
     def write_predictions_to_test(self, ticker, data: pd.DataFrame):
         data.to_csv("{0}{1}.csv".format(self.__test_folder, ticker))
