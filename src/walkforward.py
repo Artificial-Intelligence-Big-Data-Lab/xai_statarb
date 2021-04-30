@@ -65,7 +65,7 @@ class WalkForward:
                 validation=Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)), \
                 test=Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date])))
 
-            start_train = start_test
+            start_train = start_train+relativedelta(months=+self.__test_months)
             start_validation = start_train + relativedelta(months=+self.__train_months)
             start_test = start_validation + relativedelta(months=+self.__validation_months)
             end_test = start_test + relativedelta(months=+self.__test_months) + relativedelta(days=-1)
