@@ -4,7 +4,7 @@ from sklearn.model_selection import TimeSeriesSplit, cross_validate
 
 
 def get_fit_regressor(x_train, y_cr_train, x_test, y_cr_test, context=None, columns=None,
-                      get_cross_validation_results=True):
+                      get_cross_validation_results=True, suffix=None):
     if columns is not None:
         X_train, y_train = x_train[columns].copy(), y_cr_train.copy()
         X_test, y_test = x_test[columns].copy(), y_cr_test.copy()
@@ -36,5 +36,7 @@ def get_fit_regressor(x_train, y_cr_train, x_test, y_cr_test, context=None, colu
     regressor.fit(X_train.values, y_train.values.ravel())
     y_hat = regressor.predict(X_test.values)
     y_test['predicted'] = y_hat.reshape(-1, 1)
+    if suffix:
+        y_test=y_test.add_suffix(suffix)
     print('test', X_test.shape, y_test.shape)
     return regressor, y_test, score

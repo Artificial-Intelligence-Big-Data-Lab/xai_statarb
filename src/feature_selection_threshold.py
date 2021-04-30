@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 
 
+def get_columns(columns=None):
+    return columns
+
+
 def get_errors_df_by_walk_5(metrics_df, thresholds, walk, metric='MSE', worst=False):
     metrics = metrics_df[metrics_df['walk'] == walk].copy()
     label_baseline, label_pi = "{0}_baseline".format(metric), "{0}_pi".format(metric)
@@ -94,4 +98,3 @@ def get_optimal_threshold(df_worst, df_best, df_running, walk):
 def get_optimal_threshold_strategy(metrics_df):
     th_index = metrics_df['error_diff_avg'].argmax()
     return th_index
-

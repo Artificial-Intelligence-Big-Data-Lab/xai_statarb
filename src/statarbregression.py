@@ -2,7 +2,7 @@ import os
 import shutil
 from pathlib import Path
 
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from sklearn import exceptions
 
 from utils import *
@@ -42,7 +42,7 @@ class Environment:
 
     @property
     def output_folder(self):
-        output_folder = self.__statistical_arbitrage_folder + self.__walk.start.strftime('%Y-%m-%d')
+        output_folder = self.__statistical_arbitrage_folder + self.__walk.test.start.strftime('%Y-%m-%d')
         my_file = Path(output_folder)
         if not my_file.exists():
             os.mkdir(output_folder)
@@ -125,16 +125,17 @@ def compute_mdd(returns):
 
 
 class StatArbRegression:
-    def __init__(self, test: pd.DataFrame, predicted_label='predicted', k=5, folder=None):
+    def __init__(self, test: pd.DataFrame, predicted_label='predicted',label='label', k=5, folder=None):
         self.__test = test.copy()
         if folder is not None and test.empty:
             self.__test = pd.read_csv(folder + '/totale.csv', ',', parse_dates=True)
 
         self.__k = k
         self.predicted_label = predicted_label
-        self.label = 'OC Percent'
-        self.__columns = np.append(['Date', 'Title', 'Open', 'Close', self.label],
+        self.label = 'label'
+        self.__columns = np.append(['ticker', self.label],
                                    [value for value in self.__test.columns if self.predicted_label in value])
+        self.__methods = [value.replace(self.predicted_label,'').replace("_","") for value in self.__test.columns if self.predicted_label in value]
 
     def compute_long_short(self, label, ground_truth=False):
         active_range = set(range(0, self.__k, 1))
@@ -151,8 +152,8 @@ class StatArbRegression:
         valore_giornaliero_pred = (short_bydate_pred['value'] - long_bydate_pred['value']) / (
                 long_bydate_pred['no'] + short_bydate_pred['no']) * 100
 
-        return valore_giornaliero_pred, long_pred[['Title', self.label, label]], short_pred[
-            ['Title', self.label, label]]
+        return valore_giornaliero_pred, long_pred[['ticker', self.label, label]], short_pred[
+            ['ticker', self.label, label]]
 
     def __generate_signals(self, **kwargs):
 
@@ -170,9 +171,9 @@ class StatArbRegression:
 
             long_bydate_pred[self.label + '_' + column] = daily_long[self.label].values
             long_bydate_pred[column] = daily_long[column].values
-            long_bydate_pred[column + '_Title'] = daily_long['Title'].values
+            long_bydate_pred[column + '_ticker'] = daily_long['ticker'].values
 
-            short_bydate_pred[column + '_Title'] = daily_short['Title'].values
+            short_bydate_pred[column + '_ticker'] = daily_short['ticker'].values
             short_bydate_pred[self.label + '_' + column] = daily_short[self.label].values
             short_bydate_pred[column] = daily_short[column].values
 

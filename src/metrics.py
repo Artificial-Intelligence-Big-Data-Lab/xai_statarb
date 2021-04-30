@@ -42,14 +42,14 @@ def rmse(y, p):
     return np.sqrt(np.mean(np.multiply(z, z)))
 
 
-def mda(y_cr_test: pd.DataFrame):
+def mda(y_cr_test: pd.DataFrame, label='label', predicted='predicted'):
     """ Mean Directional Accuracy """
 
-    x = np.sign(y_cr_test['label'] - y_cr_test['label'].shift(1)) == np.sign(
-        y_cr_test['predicted'] - y_cr_test['label'].shift(1))
+    x = np.sign(y_cr_test[label] - y_cr_test[label].shift(1)) == np.sign(
+        y_cr_test[predicted] - y_cr_test[label].shift(1))
     return np.count_nonzero(x.values.astype('int')) / len(x[~x.isnull()])
 
 
-def hit_count(y_cr_test):
-    x = (np.sign(y_cr_test['predicted']) == np.sign(y_cr_test['label'])).astype(int)
+def hit_count(y_cr_test, label='label', predicted='predicted'):
+    x = (np.sign(y_cr_test[predicted]) == np.sign(y_cr_test[label])).astype(int)
     return np.count_nonzero(x.values), np.count_nonzero(x.values) / len(x)
