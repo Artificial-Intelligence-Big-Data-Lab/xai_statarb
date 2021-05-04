@@ -6,6 +6,7 @@ import feature_selection as fs
 from feature_selection_threshold import *
 from get_model_input import *
 from models import get_fit_regressor
+from prediction_metrics import SelectedColumns
 from statarbregression import *
 from walkforward import WalkForward
 
@@ -15,7 +16,7 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:2]  #
+    tickers = tickers[:20]  #
     # tickers = [
     # 'FP.PA',
     #         '0001.HK', '0003.HK']
@@ -53,6 +54,7 @@ def main(args):
     }
     metrics_all = pd.DataFrame()
     company_feature_builder = CompanyFeatures(env.test_folder)
+    chosen_columns = SelectedColumns(save_path=DATA_PATH, test_run=args.test_no)
 
     for idx, walk in wf.get_walks():
 
@@ -61,17 +63,17 @@ def main(args):
 
         for ticker in tickers:
 
-            print_info('*' * 20+ticker+'*' * 20)
+            print_info('*' * 20 + ticker + '*' * 20)
 
             start_time = time.perf_counter()
 
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
                 ticker=ticker, walk=walk)
 
+            chosen_columns.all_columns = X_cr_train.columns
+
             if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
                 continue
-            print_info('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
-            print_info('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
 
             context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
                            all_columns=X_cr_validation.columns)
@@ -88,7 +90,6 @@ def main(args):
                                                                                                y_cr_train,
                                                                                                X_cr_validation,
                                                                                                y_cr_validation):
-
                     looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
                                                                                       X_cr_validation,
                                                                                       y_cr_validation,
@@ -122,6 +123,7 @@ def main(args):
 
         print_info('*' * 10 + 'START forecasting using optimal threshold' + '*' * 10)
         total_df = pd.DataFrame()
+
         for ticker in tickers:
 
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
@@ -140,9 +142,12 @@ def main(args):
 
             for th_label in thresholds_labels:
                 columns = get_columns(dfs[th_label], ticker, method=th_label, columns=X_cr_train.columns)
+                chosen_columns.set_chosen_features(ticker=ticker, walk=walk, columns=columns)
+
                 looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
                                                                                   X_cr_test, y_cr_test,
-                                                                                  columns=columns, suffix="_"+th_label,
+                                                                                  columns=columns,
+                                                                                  suffix="_" + th_label,
                                                                                   get_cross_validation_results=False)
 
                 predictions_df = predictions_df.join(looc_y_cr_test)
@@ -150,9 +155,11 @@ def main(args):
             if not predictions_df.empty:
                 total_df = pd.concat([total_df, predictions_df], axis=0)
 
+        chosen_columns.save()
+
         print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
-        strategy1 = StatArbRegression(total_df, 'predicted')
-        # strategy1.compute_metrics(output_folder=env.output_folder)
+        strategy1 = StatArbRegression(total_df, 'predicted', k=args.k)
+        strategy1.compute_metrics(output_folder=env.output_folder)
         strategy1.generate_signals(output_folder=env.output_folder)
         strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 
@@ -205,6 +212,11 @@ if __name__ == "__main__":
         help='Number of test data expressed in years(Y) or months (M). Default value 1Y',
         default='1Y',
         type=str)
+    parser.add_argument(
+        '--k',
+        help='StatArb number of companies',
+        default=5,
+        type=int)
     parser.add_argument(
         '--num_rounds',
         help='Number of permutation rounds',

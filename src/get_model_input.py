@@ -105,4 +105,8 @@ class CompanyFeatures:
                                                                                   validation_start:start_test]
         X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
 
+        print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
+        print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
+        print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
+
         return X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test

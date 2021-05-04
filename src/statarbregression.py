@@ -232,7 +232,7 @@ class StatArbRegression:
         metrics_dict = {}
 
         rmse_error = self.__test[columns].apply(lambda x: rmse(expected, x), axis=0)
-        metrics_dict['RMSE'] = dict(zip(columns, rmse_error))
+        metrics_dict['MSE'] = dict(zip(columns, rmse_error))
 
         acc_error = self.__test[columns].apply(lambda x: mda(expected, x), axis=0)
         metrics_dict['MDA'] = dict(zip(columns, acc_error))
@@ -244,7 +244,7 @@ class StatArbRegression:
             if outputfolder is None:
                 print(d)
             else:
-                f = open(outputfolder + '/metrics.txt', 'w+')
+                f = open(outputfolder + '/metrics.csv', 'w+')
                 f.write("Model metrics: \n" + str(d) + "\n")
                 f.close()
 
