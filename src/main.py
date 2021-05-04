@@ -15,7 +15,10 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:15] #['FP.PA', '0001.HK', '0003.HK']
+    tickers = tickers[:20]  #
+    # tickers = [
+        # 'FP.PA',
+        #         '0001.HK', '0003.HK']
 
     random.seed(30)
 
@@ -67,80 +70,86 @@ def main(args):
         start_test = walk.test.start
         validation_start = walk.validation.start
 
-        # for ticker in tickers:
-        #
-        #     print('*' * 20, ticker, '*' * 20)
-        #
-        #     if check_if_processed(metrics, ticker, idx):
-        #         print("ticker {0} ALREADY PROCESSED".format(ticker))
-        #         continue
-        #
-        #     start_time = time.perf_counter()
-        #     x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
-        #
-        #     if x_df.empty or y_df.empty:
-        #         continue
-        #
-        #     X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
-        #     X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[validation_start:start_test]
-        #
-        #     if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
-        #         continue
-        #     print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
-        #     print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
-        #
-        #     context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
-        #                    all_columns=X_cr_validation.columns)
-        #     baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_validation, y_cr_validation)
-        #
-        #     metric_single_baseline = get_prediction_performance_results(b_y_cr_test, False)
-        #     metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
-        #
-        #     metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
-        #
-        #     metrics = metrics.append(metric_single_baseline, ignore_index=True)
-        #     metrics.to_csv(metrics_output_path, index=False)
-        #
-        #     for method, transformer in {args.data_type: methods[args.data_type]}.items():
-        #         for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
-        #                                                                                        y_cr_train,
-        #                                                                                        X_cr_validation,
-        #                                                                                        y_cr_validation):
-        #
-        #             looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
-        #                                                                               X_cr_validation,
-        #                                                                               y_cr_validation,
-        #                                                                               columns=columns)
-        #             metrics_fi_looc = get_prediction_performance_results(looc_y_cr_test, False)
-        #
-        #             context.update(dict(method=method, selection_error=selection_error, index=col_idx))
-        #             merged_series = metrics_baseline.copy()
-        #             merged_series = add_metrics_information(metrics_fi_looc, context, score_looc,
-        #                                                     importance_series=importance, copy_to=merged_series)
-        #             metrics_fi_looc, missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc
-        #                                                                         , importance_series=importance,
-        #                                                                         baseline_loss=transformer.baseline_loss)
-        #
-        #             if missing_col_dict is not None and not missing_col_dict.empty:
-        #                 missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
-        #                 missing_columns.to_csv(removed_columns_path, index=False)
-        #
-        #             metrics = metrics.append(metrics_fi_looc, ignore_index=True)
-        #             metrics.to_csv(metrics_output_path, index=False)
-        #
-        #             metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
-        #             metrics_all.to_csv(all_metrics_output_path, index=False)
-        #
-        #     end_time = time.perf_counter()
-        #     print('{0} took {1} s'.format(ticker, end_time - start_time))
-        #
-        # fix_th_best = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), idx, worst=False)
-        # fix_th_worst = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), idx, worst=True)
-        # running_th = get_errors_df_by_walk_3(metrics_all, np.arange(0.0, -0.03, -0.0001), idx, worst=False)
-        # threshold_row = get_optimal_threshold(fix_th_worst, fix_th_best, running_th, idx)
-        # thresholds = thresholds.append(threshold_row, ignore_index=True)
-        # thresholds.to_csv(thresholds_path, index=False)
+        for ticker in tickers:
 
+            print('*' * 20, ticker, '*' * 20)
+
+            if check_if_processed(metrics, ticker, idx):
+                print("ticker {0} ALREADY PROCESSED".format(ticker))
+                continue
+
+            start_time = time.perf_counter()
+            x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
+
+            if x_df.empty or y_df.empty:
+                continue
+
+            X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
+            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
+                                                                                      validation_start:start_test]
+
+            if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
+                continue
+            print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
+            print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
+
+            context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
+                           all_columns=X_cr_validation.columns)
+            baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_validation, y_cr_validation
+                                                             , get_cross_validation_results=False)
+
+            metric_single_baseline = get_prediction_performance_results(b_y_cr_test, False)
+            metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
+
+            metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
+
+            metrics = metrics.append(metric_single_baseline, ignore_index=True)
+            metrics.to_csv(metrics_output_path, index=False)
+
+            for method, transformer in {args.data_type: methods[args.data_type]}.items():
+                for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
+                                                                                               y_cr_train,
+                                                                                               X_cr_validation,
+                                                                                               y_cr_validation):
+
+                    looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
+                                                                                      X_cr_validation,
+                                                                                      y_cr_validation,
+                                                                                      columns=columns,
+                                                                                      get_cross_validation_results=False)
+                    metrics_fi_looc = get_prediction_performance_results(looc_y_cr_test, False)
+
+                    context.update(dict(method=method, selection_error=selection_error, index=col_idx))
+                    merged_series = metrics_baseline.copy()
+                    merged_series = add_metrics_information(metrics_fi_looc, context, score_looc,
+                                                            importance_series=importance, copy_to=merged_series)
+                    metrics_fi_looc, missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc
+                                                                                , importance_series=importance,
+                                                                                baseline_loss=transformer.baseline_loss)
+
+                    if missing_col_dict is not None and not missing_col_dict.empty:
+                        missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
+                        missing_columns.to_csv(removed_columns_path, index=False)
+
+                    metrics = metrics.append(metrics_fi_looc, ignore_index=True)
+                    metrics.to_csv(metrics_output_path, index=False)
+
+                    metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
+                    metrics_all.to_csv(all_metrics_output_path, index=False)
+
+            end_time = time.perf_counter()
+            print_info('{0} took {1} s'.format(ticker, end_time - start_time))
+
+        print_info('*' * 10 + 'START computing threhsolds' + '*' * 10)
+        thresholds_labels = ['best', 'worst', 'running']
+        threshold_row = get_optimal_threshold(metrics_all, idx, thresholds_labels)
+        thresholds = thresholds.append(threshold_row, ignore_index=True)
+        thresholds.to_csv(thresholds_path, index=False)
+        print_info('*'*10+'END computing threhsolds'+'*'*10)
+        dfs = dict([(th_label, (get_metrics(metrics_all[metrics_all.walk == idx], thresholds, th_label))) for th_label
+               in thresholds_labels])
+
+        print_info('*' * 10 + 'START forecasting using optimal threhsold' + '*' * 10)
         total_df = pd.DataFrame()
         for ticker in tickers:
             x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
@@ -156,23 +165,26 @@ def main(args):
             if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
                 continue
 
-            columns = get_columns(X_cr_train.columns)
             baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test,
                                                              suffix='_baseline', get_cross_validation_results=False)
+            predictions_df = X_cr_test.copy()
+            predictions_df = pd.concat([predictions_df, y_cr_test], axis=1)
+            predictions_df = predictions_df.join(b_y_cr_test)
+            predictions_df['ticker'] = ticker
 
-            label = '_best'
-            looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
-                                                                              X_cr_test, y_cr_test,
-                                                                              columns=columns, suffix=label,
-                                                                              get_cross_validation_results=False)
-            df = X_cr_test.copy()
-            df = pd.concat([df, y_cr_test], axis=1)
-            df = df.join(b_y_cr_test)
-            df = df.join(looc_y_cr_test)
-            df['ticker'] = ticker
-            if not df.empty:
-                total_df = pd.concat([total_df, df], axis=0)
+            for th_label in thresholds_labels:
+                columns = get_columns(dfs[th_label], ticker, method=th_label, columns=X_cr_train.columns)
+                looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
+                                                                                  X_cr_test, y_cr_test,
+                                                                                  columns=columns, suffix=th_label,
+                                                                                  get_cross_validation_results=False)
 
+                predictions_df = predictions_df.join(looc_y_cr_test)
+
+            if not predictions_df.empty:
+                total_df = pd.concat([total_df, predictions_df], axis=0)
+
+        print_info('*' * 10 + 'END forecasting using optimal threhsold' + '*' * 10)
         strategy1 = StatArbRegression(total_df, 'predicted')
         # strategy1.compute_metrics(output_folder=env.output_folder)
         strategy1.generate_signals(output_folder=env.output_folder)

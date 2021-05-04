@@ -88,6 +88,8 @@ def add_metrics_information(metric_original: pd.Series, context: dict, score, im
 
 def add_score_to_metrics(score, method_suffix=''):
     metric_series = pd.Series()
+    if not score:
+        return metric_series.to_dict()
     metric_series['mean_mse'] = -score['test_neg_mean_squared_error'].mean()
     metric_series['std_mse'] = score['test_neg_mean_squared_error'].std(ddof=1)
     metric_series['mean_mae'] = -score['test_neg_mean_absolute_error'].mean()

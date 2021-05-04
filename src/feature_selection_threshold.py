@@ -2,8 +2,65 @@ import numpy as np
 import pandas as pd
 
 
-def get_columns(columns=None):
-    return columns
+def get_columns(df: pd.DataFrame, ticker, method, columns):
+    if df.empty:
+        return columns
+
+    removed_column = df[(df['ticker'] == ticker) & (df['method'] == method)]['removed_column'].values[:1]
+    if removed_column is None:
+        return columns
+    else:
+        return set(columns) - set(removed_column)
+
+
+def get_is_lower(x, th):
+    y = th[th['walk'] == x.walk]['value'].values[0]
+    return x['removed_FI'] <= y
+
+
+def get_error(x, th, error_label='MSE'):
+    y = th[th['walk'] == x.walk]['value'].values[0]
+    label_pi = "{0}_pi".format(error_label)
+    baseline_pi = "{0}_baseline".format(error_label)
+    return x[label_pi] if x['removed_FI'] <= y else x[baseline_pi]
+
+
+def get_column(x, th):
+    y = th[th['walk'] == x.walk]['value'].values[0]
+    return x['removed_column'] if x['removed_FI'] <= y else None
+
+
+def get_metrics(metrics, thresholds, label='worst', error_label='MSE'):
+    th = pd.DataFrame()
+    th['walk'] = thresholds['walk']
+    th['value'] = thresholds['threshold_{0}'.format(label)]
+
+    if label != 'running':
+        worst = label == 'worst'
+        indexes = metrics.sort_values(['walk', 'ticker', 'removed_FI'], ascending=[True, True, worst]) \
+            .groupby(by=['walk', 'ticker'], as_index=False).nth(0)[['walk', 'ticker', 'removed_FI', 'removed_column']]
+        indexes.dropna(inplace=True)
+        test_df = metrics[metrics.index.isin(indexes.index)]
+    else:
+        test_df = metrics.copy()
+        test_df['is_lower'] = metrics.apply(lambda x: get_is_lower(x, th), axis=1)
+        test_df = test_df[test_df['is_lower']].groupby(by=['walk', 'ticker'], as_index=False).nth(0)
+        all_companies = metrics.groupby(by=['walk', 'ticker'], as_index=False).nth(0)
+        df3 = all_companies.merge(test_df, left_on=['walk', 'ticker'], right_on=['walk', 'ticker'], how='left',
+                                  suffixes=('_all', '_selected'))
+        df3 = df3[['walk', 'ticker', 'MSE_baseline_all', 'MSE_baseline_selected', 'MSE_pi_selected', 'MSE_pi_all',
+                   'removed_column_selected', 'removed_FI_selected', 'is_lower']]
+        df3.rename(inplace=True, columns={'MSE_baseline_all': 'MSE_baseline', 'MSE_pi_selected': 'MSE_pi',
+                                          'removed_column_selected': 'removed_column',
+                                          'removed_FI_selected': 'removed_FI'})
+        test_df = df3.copy()
+
+    df1 = test_df.copy()
+
+    df1['{0}'.format(error_label, label)] = test_df.apply(lambda x: get_error(x, th, error_label='MSE'), axis=1)
+    df1['removed_column'] = test_df.apply(lambda x: get_column(x, th), axis=1)
+    df1['method'] = label
+    return df1
 
 
 def get_errors_df_by_walk_5(metrics_df, thresholds, walk, metric='MSE', worst=False):
@@ -75,7 +132,10 @@ def get_errors_df_by_walk_3(metrics_df, thresholds, walk, metric='MSE', worst=Fa
     return errors
 
 
-def get_optimal_threshold(df_worst, df_best, df_running, walk):
+def get_optimal_threshold(metrics_all, walk, labels):
+    df_worst = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), walk, worst=False)
+    df_best = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), walk, worst=True)
+    df_running = get_errors_df_by_walk_3(metrics_all, np.arange(0.0, -0.03, -0.0001), walk, worst=False)
     idx_worst = get_optimal_threshold_strategy(df_worst)
     idx_best = get_optimal_threshold_strategy(df_best)
     idx_running = get_optimal_threshold_strategy(df_running)
