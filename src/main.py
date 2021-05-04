@@ -17,14 +17,12 @@ def main(args):
     tickers = constituents['Ticker']
     tickers = tickers[:20]  #
     # tickers = [
-        # 'FP.PA',
-        #         '0001.HK', '0003.HK']
+    # 'FP.PA',
+    #         '0001.HK', '0003.HK']
 
     random.seed(30)
 
-    metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_{0}.csv'.format(args.test_no)
     all_metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_all_{0}.csv'.format(args.test_no)
-    removed_columns_path = DATA_PATH + 'LOOC_missing_columns_cr_{0}.csv'.format(args.test_no)
     thresholds_path = DATA_PATH + 'LOOC_thresholds_{0}.csv'.format(args.test_no)
 
     thresholds = pd.DataFrame(columns={'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best'
@@ -53,45 +51,27 @@ def main(args):
         # "pi_mse": fs.PISelectorKBest(seed=42),
         # "pi_mae": fs.PermutationImportanceSelectorKBest(seed=42)
     }
-    metrics = pd.read_csv(metrics_output_path) if os.path.exists(metrics_output_path) else pd.DataFrame()
     metrics_all = pd.DataFrame()
-
-    missing_columns = pd.read_csv(removed_columns_path) if os.path.exists(removed_columns_path) else pd.DataFrame()
+    company_feature_builder = CompanyFeatures(env.test_folder)
 
     for idx, walk in wf.get_walks():
-        print('*' * 20, idx, '*' * 20)
-        print(walk.train.start, walk.train.end)
-        print(walk.validation.start, walk.validation.end)
-        print(walk.test.start, walk.test.end)
-        print('*' * 20)
+
         env.cleanup()
         env.walk = walk
 
-        start_test = walk.test.start
-        validation_start = walk.validation.start
-
         for ticker in tickers:
 
-            print('*' * 20, ticker, '*' * 20)
-
-            if check_if_processed(metrics, ticker, idx):
-                print("ticker {0} ALREADY PROCESSED".format(ticker))
-                continue
+            print_info('*' * 20, ticker, '*' * 20)
 
             start_time = time.perf_counter()
-            x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
 
-            if x_df.empty or y_df.empty:
-                continue
-
-            X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
-            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
-                                                                                      validation_start:start_test]
+            X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
+                ticker=ticker, walk=walk)
 
             if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
                 continue
-            print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
-            print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
+            print_info('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
+            print_info('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
 
             context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
                            all_columns=X_cr_validation.columns)
@@ -102,9 +82,6 @@ def main(args):
             metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
 
             metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
-
-            metrics = metrics.append(metric_single_baseline, ignore_index=True)
-            metrics.to_csv(metrics_output_path, index=False)
 
             for method, transformer in {args.data_type: methods[args.data_type]}.items():
                 for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
@@ -127,42 +104,31 @@ def main(args):
                                                                                 , importance_series=importance,
                                                                                 baseline_loss=transformer.baseline_loss)
 
-                    if missing_col_dict is not None and not missing_col_dict.empty:
-                        missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
-                        missing_columns.to_csv(removed_columns_path, index=False)
-
-                    metrics = metrics.append(metrics_fi_looc, ignore_index=True)
-                    metrics.to_csv(metrics_output_path, index=False)
-
                     metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
                     metrics_all.to_csv(all_metrics_output_path, index=False)
 
             end_time = time.perf_counter()
             print_info('{0} took {1} s'.format(ticker, end_time - start_time))
 
-        print_info('*' * 10 + 'START computing threhsolds' + '*' * 10)
+        print_info('*' * 10 + 'START computing thresholds' + '*' * 10)
         thresholds_labels = ['best', 'worst', 'running']
         threshold_row = get_optimal_threshold(metrics_all, idx, thresholds_labels)
         thresholds = thresholds.append(threshold_row, ignore_index=True)
         thresholds.to_csv(thresholds_path, index=False)
-        print_info('*'*10+'END computing threhsolds'+'*'*10)
-        dfs = dict([(th_label, (get_metrics(metrics_all[metrics_all.walk == idx], thresholds, th_label))) for th_label
-               in thresholds_labels])
+        print_info('*' * 10 + 'END computing thresholds' + '*' * 10)
 
-        print_info('*' * 10 + 'START forecasting using optimal threhsold' + '*' * 10)
+        dfs = dict([(th_label, (get_metrics(metrics_all[metrics_all.walk == idx], thresholds, th_label))) for th_label
+                    in thresholds_labels])
+
+        print_info('*' * 10 + 'START forecasting using optimal threshold' + '*' * 10)
         total_df = pd.DataFrame()
         for ticker in tickers:
-            x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
 
-            if x_df.empty or y_df.empty:
-                continue
+            X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
+                ticker=ticker,
+                walk=walk)
 
-            X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
-            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
-                                                                                      validation_start:start_test]
-            X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
-
-            if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
+            if len(X_cr_train) == 0 or len(y_cr_test) == 0:
                 continue
 
             baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test,
@@ -184,14 +150,13 @@ def main(args):
             if not predictions_df.empty:
                 total_df = pd.concat([total_df, predictions_df], axis=0)
 
-        print_info('*' * 10 + 'END forecasting using optimal threhsold' + '*' * 10)
+        print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
         strategy1 = StatArbRegression(total_df, 'predicted')
         # strategy1.compute_metrics(output_folder=env.output_folder)
         strategy1.generate_signals(output_folder=env.output_folder)
         strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 
     print('*' * 20, 'DONE', '*' * 20)
-    metrics.to_csv(metrics_output_path, index=False)
     metrics_all.to_csv(all_metrics_output_path, index=False)
     thresholds.to_csv(thresholds_path, index=False)
 

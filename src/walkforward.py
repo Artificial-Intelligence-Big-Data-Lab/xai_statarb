@@ -61,11 +61,19 @@ class WalkForward:
 
         while (end_test < self.end_date) and (idx < self.no_walks or self.no_walks is None):
             idx = idx + 1
-            yield idx, Walk(train=Set(idx=idx, start=start_train, end=start_validation + relativedelta(days=-1)), \
-                validation=Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)), \
-                test=Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date])))
+            walk = Walk(train=Set(idx=idx, start=start_train, end=start_validation + relativedelta(days=-1)), \
+                        validation=Set(idx=idx, start=start_validation, end=start_test + relativedelta(days=-1)), \
+                        test=Set(idx=idx, start=start_test, end=np.min([end_test, self.end_date])))
 
-            start_train = start_train+relativedelta(months=+self.__test_months)
+            yield idx, walk
+
+            print('*' * 20, idx, '*' * 20)
+            print(walk.train.start, walk.train.end)
+            print(walk.validation.start, walk.validation.end)
+            print(walk.test.start, walk.test.end)
+            print('*' * 20)
+
+            start_train = start_train + relativedelta(months=+self.__test_months)
             start_validation = start_train + relativedelta(months=+self.__train_months)
             start_test = start_validation + relativedelta(months=+self.__validation_months)
             end_test = start_test + relativedelta(months=+self.__test_months) + relativedelta(days=-1)

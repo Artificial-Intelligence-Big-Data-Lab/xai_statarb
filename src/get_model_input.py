@@ -1,6 +1,8 @@
 import pandas as pd
 import yfinance as yf
 
+from walkforward import Walk
+
 
 def get_cumulative_returns(data: pd.DataFrame, ticker):
     indices = [1, 2, 3, 4, 5, 21, 63, 126, 252]
@@ -54,3 +56,32 @@ def get_data_for_ticker(ticker: str, date_start, date_end):
     X = data_df[[c for c in data_df.columns if c not in ['Date', 'ticker', 'label']]]
     y = data_df[['label']]
     return X, y
+
+
+class CompanyFeatures:
+    def __init__(self, folder_output: str):
+        """
+
+        Parameters
+        ----------
+        folder_output : str
+        """
+        self.folder = folder_output
+
+    def get_features(self, ticker: str, walk: Walk):
+        self.ticker = ticker
+        self.file = ticker if 'csv' in ticker else ticker + '.csv'
+        x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
+
+        if x_df.empty or y_df.empty:
+            return None, None, None, None, None, None
+
+        start_test = walk.test.start
+        validation_start = walk.validation.start
+
+        X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
+        X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
+                                                                                  validation_start:start_test]
+        X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
+
+        return X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test
