@@ -46,25 +46,6 @@ class Environment:
             os.mkdir(output_folder)
         return output_folder
 
-    # def get_write_folder(self, data_type, ticker):
-    #     if '.csv' not in ticker:
-    #         ticker = ticker + '.csv'
-    #
-    #     write_path = self.data_folder + data_type + "_" + ticker.replace(" ", "_")
-    #     print_info('Write path {0}'.format(write_path), file="stdout", flush=True)
-    #     if os.path.exists(write_path):
-    #         os.remove(write_path)
-    #     return write_path
-
-    # def get_folders(folder_path):
-    #     folders = []
-    #     stri = "./{0}/StatisticalArbitrage/*-*ARIMASINGLE2*_output".format(folder_path)
-    #
-    #     for folder in glob.glob(stri):
-    #         print(folder)
-    #         folders.append(folder)
-    #     return folders
-
     def write_predictions_to_test(self, ticker, data: pd.DataFrame):
         data.to_csv("{0}{1}.csv".format(self.__test_folder, ticker))
 
