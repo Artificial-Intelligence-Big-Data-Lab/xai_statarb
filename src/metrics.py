@@ -2,24 +2,6 @@ import numpy as np
 import pandas as pd
 
 
-def computecumsum(series):
-    xspredsimple = np.array(series.values.flatten().tolist())
-    mean_return_by_day = np.array(series.values.flatten().tolist()).mean()
-    xspred = xspredsimple.cumsum()
-    ipred = np.argmax(np.maximum.accumulate(xspred) - xspred)
-    if ipred == 0:
-        jpred = 0
-    else:
-        jpred = np.argmax(xspred[:ipred])
-
-    mddpred = xspred[jpred] - xspred[ipred]
-
-    computed_return = sum(series.values.flatten().tolist())
-    romad = sum(series.values.flatten().tolist()) / mddpred
-
-    return mddpred, computed_return, romad, xspred, ipred, jpred, mean_return_by_day
-
-
 def rmse(y, p):
     r"""Root Mean Square Error.
     .. math::
