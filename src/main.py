@@ -15,7 +15,7 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:20]  #
+    tickers = tickers[:2]  #
     # tickers = [
     # 'FP.PA',
     #         '0001.HK', '0003.HK']
@@ -61,7 +61,7 @@ def main(args):
 
         for ticker in tickers:
 
-            print_info('*' * 20, ticker, '*' * 20)
+            print_info('*' * 20+ticker+'*' * 20)
 
             start_time = time.perf_counter()
 
@@ -142,7 +142,7 @@ def main(args):
                 columns = get_columns(dfs[th_label], ticker, method=th_label, columns=X_cr_train.columns)
                 looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
                                                                                   X_cr_test, y_cr_test,
-                                                                                  columns=columns, suffix=th_label,
+                                                                                  columns=columns, suffix="_"+th_label,
                                                                                   get_cross_validation_results=False)
 
                 predictions_df = predictions_df.join(looc_y_cr_test)

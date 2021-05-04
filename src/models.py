@@ -37,6 +37,6 @@ def get_fit_regressor(x_train, y_cr_train, x_test, y_cr_test, context=None, colu
     y_hat = regressor.predict(X_test.values)
     y_test['predicted'] = y_hat.reshape(-1, 1)
     if suffix:
-        y_test=y_test.add_suffix(suffix)
+        y_test = y_test.add_suffix(suffix)
     print('test', X_test.shape, y_test.shape)
     return regressor, y_test, score

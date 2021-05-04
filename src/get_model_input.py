@@ -2,6 +2,7 @@ import pandas as pd
 import yfinance as yf
 
 from walkforward import Walk
+import os
 
 
 def get_cumulative_returns(data: pd.DataFrame, ticker):
@@ -33,24 +34,45 @@ def get_target(data_df: pd.DataFrame, ticker):
     return label_df
 
 
-def get_data_for_ticker(ticker: str, date_start, date_end):
-    """
+def get_data_from_file(ticker: str, folder, date_start, date_end):
+    data_df = pd.read_csv(folder + ticker + ".csv", parse_dates=True) if os.path.exists(
+        folder + ticker + ".csv") else pd.DataFrame()
 
-    Returns
-    -------
-    pandas DataFrame
-    """
+    if 'Date' in data_df.columns:
+        data_df['Date'] = pd.to_datetime(data_df['Date'])
+        data_df.set_index('Date', inplace=True)
+        data_df = data_df[date_start:date_end]
+        # data_df.reset_index(inplace=True)
+    return data_df
+
+
+def get_data_online(ticker: str, date_start, date_end):
     data = yf.download(ticker, start=date_start, end=date_end)  # ,'2018-01-01')
     feature_df = get_cumulative_returns(data, ticker)
     label_df = get_target(data, ticker)
     df1 = pd.concat([feature_df, label_df], axis=1)
     df1.dropna(inplace=True)
     data_df = df1.loc[[i for i in df1.index if i[1] == ticker]].copy()
+    data_df.reset_index(inplace=True)
+    return data_df
+
+
+def get_data_for_ticker(ticker: str, folder: str, date_start, date_end):
+    """
+
+    Returns
+    -------
+    pandas DataFrame
+    """
+    data_df = get_data_from_file(ticker, folder, date_start, date_end)
+    if data_df.empty:
+        data_df = get_data_online(ticker, date_start, date_end)
 
     if data_df.empty:
         return data_df, data_df
 
-    data_df.reset_index(inplace=True)
+    data_df.to_csv("{0}{1}.csv".format(folder, ticker), index=False)
+
     if 'Date' in data_df.columns:
         data_df.set_index('Date', inplace=True)
     X = data_df[[c for c in data_df.columns if c not in ['Date', 'ticker', 'label']]]
@@ -69,9 +91,8 @@ class CompanyFeatures:
         self.folder = folder_output
 
     def get_features(self, ticker: str, walk: Walk):
-        self.ticker = ticker
-        self.file = ticker if 'csv' in ticker else ticker + '.csv'
-        x_df, y_df = get_data_for_ticker(ticker, walk.train.start, walk.test.end)
+        x_df, y_df = get_data_for_ticker(ticker, folder=self.folder, date_start=walk.train.start,
+                                         date_end=walk.test.end)
 
         if x_df.empty or y_df.empty:
             return None, None, None, None, None, None

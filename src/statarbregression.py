@@ -14,7 +14,7 @@ class Environment:
     def __init__(self, tickers, args, base_folder='../LIME'):
         self.__base_folder = base_folder
         self.__test_folder = base_folder + '/test/'
-        self.__file_names = ['.csv' + ticker if '.csv' not in ticker else ticker for ticker in tickers]
+        self.__file_names = [ticker + '.csv' if '.csv' not in ticker else ticker for ticker in tickers]
         self.__setup_folders(base_folder)
         self.__walk = None
         self.prediction_params = {
@@ -125,7 +125,7 @@ def compute_mdd(returns):
 
 
 class StatArbRegression:
-    def __init__(self, test: pd.DataFrame, predicted_label='predicted',label='label', k=5, folder=None):
+    def __init__(self, test: pd.DataFrame, predicted_label='predicted', label='label', k=5, folder=None):
         self.__test = test.copy()
         if folder is not None and test.empty:
             self.__test = pd.read_csv(folder + '/totale.csv', ',', parse_dates=True)
@@ -135,7 +135,8 @@ class StatArbRegression:
         self.label = 'label'
         self.__columns = np.append(['ticker', self.label],
                                    [value for value in self.__test.columns if self.predicted_label in value])
-        self.__methods = [value.replace(self.predicted_label,'').replace("_","") for value in self.__test.columns if self.predicted_label in value]
+        self.__methods = [value.replace(self.predicted_label, '').replace("_", "") for value in self.__test.columns if
+                          self.predicted_label in value]
 
     def compute_long_short(self, label, ground_truth=False):
         active_range = set(range(0, self.__k, 1))
