@@ -1,10 +1,12 @@
 import os
 import shutil
 from pathlib import Path
-
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from utils import *
-from walkforward import Walk
+
+from src import Walk
+from src.utils import print_info
 
 
 class Environment:
@@ -46,9 +48,6 @@ class Environment:
             os.mkdir(output_folder)
         return output_folder
 
-    def write_predictions_to_test(self, ticker, data: pd.DataFrame):
-        data.to_csv("{0}{1}.csv".format(self.__test_folder, ticker))
-
     @staticmethod
     def _cleanup_folder(test_folder, files):
         for ticker in files:
@@ -57,7 +56,6 @@ class Environment:
 
     def cleanup(self):
         self._cleanup_folder(self.test_folder, self.company_names)
-        # self._cleanup_folder(self.data_folder, self.company_names)
 
     @property
     def company_names(self):
@@ -89,18 +87,18 @@ class Environment:
 
 
 def compute_mdd(returns):
-    xspred = np.array(returns).cumsum()
+    xs_predicted = np.array(returns).cumsum()
 
-    if len(xspred) == 0:
+    if len(xs_predicted) == 0:
         return
-    ipred = np.argmax(np.maximum.accumulate(xspred) - xspred)
+    ipred = np.argmax(np.maximum.accumulate(xs_predicted) - xs_predicted)
     if ipred == 0:
         jpred = 0
     else:
-        jpred = np.argmax(xspred[:ipred])
+        jpred = np.argmax(xs_predicted[:ipred])
 
-    mddpred = xspred[jpred] - xspred[ipred]
-    return xspred, mddpred, ipred, jpred
+    mddpred = xs_predicted[jpred] - xs_predicted[ipred]
+    return xs_predicted, mddpred, ipred, jpred
 
 
 class StatArbRegression:
@@ -203,37 +201,13 @@ class StatArbRegression:
 
         return self.__valore_giornaliero_pred, self.__valore_giornaliero_exp
 
-    def compute_metrics(self, **kwargs):
-        print_info("compute metrics", file="stdout", flush=True)
-        columns = [value for value in self.__test.columns if self.predicted_label in value]
-        expected = self.__test[self.label].values
-
-        metrics_dict = {}
-
-        rmse_error = self.__test[columns].apply(lambda x: rmse(expected, x), axis=0)
-        metrics_dict['MSE'] = dict(zip(columns, rmse_error))
-
-        acc_error = self.__test[columns].apply(lambda x: mda(expected, x), axis=0)
-        metrics_dict['MDA'] = dict(zip(columns, acc_error))
-
-        if 'output_folder' in kwargs:
-            output_folder = kwargs.get('output_folder')
-            d = pd.DataFrame(data=metrics_dict)
-
-            if output_folder is None:
-                print(d)
-            else:
-                f = open(output_folder + '/metrics.csv', 'w+')
-                f.write("Model metrics: \n" + str(d) + "\n")
-                f.close()
-
     def plot_returns(self, output_folder, parameters):
         print_info(
             'shapes for predicted and expected daily returns {0} {1}'.format(str(self.__valore_giornaliero_pred.shape),
                                                                              str(self.__valore_giornaliero_exp.shape)),
             file="stdout", flush=True)
-        if (
-                self.__valore_giornaliero_pred is None or self.__valore_giornaliero_pred.empty or self.__valore_giornaliero_exp is None or self.__valore_giornaliero_exp.empty):
+        if self.__valore_giornaliero_pred is None or self.__valore_giornaliero_pred.empty \
+                or self.__valore_giornaliero_exp is None or self.__valore_giornaliero_exp.empty:
             self.__generate_signals(output_folder=output_folder)
 
         no_forecasts = len(self.__valore_giornaliero_exp)

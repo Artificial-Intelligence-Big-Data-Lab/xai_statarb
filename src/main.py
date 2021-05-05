@@ -1,14 +1,15 @@
 import argparse
 import datetime
 import random
+import time
 
 import feature_selection as fs
 from feature_selection_threshold import *
 from get_model_input import *
 from models import get_fit_regressor
-from prediction_metrics import SelectedColumns
+from src import WalkForward, SelectedColumns, MetricsSaver
+from src.utils import get_prediction_performance_results, add_metrics_information, add_context_information
 from statarbregression import *
-from walkforward import WalkForward
 
 DATA_PATH = '../LIME/data/'
 
@@ -26,11 +27,11 @@ def main(args):
     all_metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_all_{0}.csv'.format(args.test_no)
     thresholds_path = DATA_PATH + 'LOOC_thresholds_{0}.csv'.format(args.test_no)
 
-    thresholds = pd.DataFrame(columns={'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best'
-        , 'threshold_worst', 'error_worst', 'no_improvements_worst', 'ratio_worst'
-        , 'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
+    thresholds = pd.DataFrame(columns={'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best',
+                                       'threshold_worst', 'error_worst', 'no_improvements_worst', 'ratio_worst',
+                                       'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
                                        })
-
+    thresholds_labels = ['best', 'worst', 'running']
     env = Environment(tickers=tickers, args=args)
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
@@ -55,6 +56,7 @@ def main(args):
     metrics_all = pd.DataFrame()
     company_feature_builder = CompanyFeatures(env.test_folder)
     chosen_columns = SelectedColumns(save_path=DATA_PATH, test_run=args.test_no)
+    metric_saver=MetricsSaver(labels=thresholds_labels)
 
     for idx, walk in wf.get_walks():
 
@@ -112,7 +114,6 @@ def main(args):
             print_info('{0} took {1} s'.format(ticker, end_time - start_time))
 
         print_info('*' * 10 + 'START computing thresholds' + '*' * 10)
-        thresholds_labels = ['best', 'worst', 'running']
         threshold_row = get_optimal_threshold(metrics_all, idx, thresholds_labels)
         thresholds = thresholds.append(threshold_row, ignore_index=True)
         thresholds.to_csv(thresholds_path, index=False)
@@ -154,12 +155,12 @@ def main(args):
 
             if not predictions_df.empty:
                 total_df = pd.concat([total_df, predictions_df], axis=0)
+                metric_saver.set_metrics(ticker, idx, predictions_df)
 
         chosen_columns.save()
-
+        metric_saver.save(env.output_folder)
         print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
         strategy1 = StatArbRegression(total_df, 'predicted', k=args.k)
-        strategy1.compute_metrics(output_folder=env.output_folder)
         strategy1.generate_signals(output_folder=env.output_folder)
         strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 
