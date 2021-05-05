@@ -3,12 +3,15 @@ import datetime
 import random
 import time
 
+import pandas as pd
+
 import feature_selection as fs
 from feature_selection_threshold import *
 from get_model_input import *
 from models import get_fit_regressor
 from src import WalkForward, SelectedColumns, MetricsSaver
-from src.utils import get_prediction_performance_results, add_metrics_information, add_context_information
+from src.utils import get_prediction_performance_results, add_metrics_information, add_context_information, \
+    init_prediction_df
 from statarbregression import *
 
 DATA_PATH = '../LIME/data/'
@@ -17,7 +20,7 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:20]  #
+    tickers = tickers[:2]  #
     # tickers = [
     # 'FP.PA',
     #         '0001.HK', '0003.HK']
@@ -56,7 +59,7 @@ def main(args):
     metrics_all = pd.DataFrame()
     company_feature_builder = CompanyFeatures(env.test_folder)
     chosen_columns = SelectedColumns(save_path=DATA_PATH, test_run=args.test_no)
-    metric_saver=MetricsSaver(labels=thresholds_labels)
+    metric_saver = MetricsSaver(labels=thresholds_labels)
 
     for idx, walk in wf.get_walks():
 
@@ -79,10 +82,13 @@ def main(args):
 
             context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
                            all_columns=X_cr_validation.columns)
-            baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_validation, y_cr_validation
-                                                             , get_cross_validation_results=False)
+            baseline, b_y_validation, b_y_test, score = get_fit_regressor(X_cr_train, y_cr_train,
+                                                                          x_validation=X_cr_validation,
+                                                                          y_validation=y_cr_validation,
+                                                                          x_test=X_cr_test, y_cr_test=y_cr_test,
+                                                                          get_cross_validation_results=False)
 
-            metric_single_baseline = get_prediction_performance_results(b_y_cr_test, False)
+            metric_single_baseline = get_prediction_performance_results(b_y_validation, False)
             metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
 
             metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
@@ -92,19 +98,22 @@ def main(args):
                                                                                                y_cr_train,
                                                                                                X_cr_validation,
                                                                                                y_cr_validation):
-                    looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
-                                                                                      X_cr_validation,
-                                                                                      y_cr_validation,
-                                                                                      columns=columns,
-                                                                                      get_cross_validation_results=False)
-                    metrics_fi_looc = get_prediction_performance_results(looc_y_cr_test, False)
+                    looc_fi_regressor, looc_y_validation, looc_y_test, score_looc = get_fit_regressor(X_cr_train,
+                                                                                                      y_cr_train,
+                                                                                                      x_validation=X_cr_validation,
+                                                                                                      y_validation=y_cr_validation,
+                                                                                                      x_test=X_cr_test,
+                                                                                                      y_cr_test=y_cr_test,
+                                                                                                      columns=columns,
+                                                                                                      get_cross_validation_results=False)
+                    metrics_fi_looc = get_prediction_performance_results(looc_y_validation, False)
 
                     context.update(dict(method=method, selection_error=selection_error, index=col_idx))
                     merged_series = metrics_baseline.copy()
                     merged_series = add_metrics_information(metrics_fi_looc, context, score_looc,
                                                             importance_series=importance, copy_to=merged_series)
-                    metrics_fi_looc, missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc
-                                                                                , importance_series=importance,
+                    metrics_fi_looc, missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc,
+                                                                                importance_series=importance,
                                                                                 baseline_loss=transformer.baseline_loss)
 
                     metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
@@ -124,6 +133,7 @@ def main(args):
 
         print_info('*' * 10 + 'START forecasting using optimal threshold' + '*' * 10)
         total_df = pd.DataFrame()
+        validation_total_df = pd.DataFrame()
 
         for ticker in tickers:
 
@@ -134,33 +144,42 @@ def main(args):
             if len(X_cr_train) == 0 or len(y_cr_test) == 0:
                 continue
 
-            baseline, b_y_cr_test, score = get_fit_regressor(X_cr_train, y_cr_train, X_cr_test, y_cr_test,
-                                                             suffix='_baseline', get_cross_validation_results=False)
-            predictions_df = X_cr_test.copy()
-            predictions_df = pd.concat([predictions_df, y_cr_test], axis=1)
-            predictions_df = predictions_df.join(b_y_cr_test)
-            predictions_df['ticker'] = ticker
+            baseline, b_y_validation, b_y_test, score = get_fit_regressor(X_cr_train, y_cr_train,
+                                                                          x_validation=X_cr_validation,
+                                                                          y_validation=y_cr_validation,
+                                                                          x_test=X_cr_test, y_cr_test=y_cr_test,
+                                                                          suffix='_baseline',
+                                                                          get_cross_validation_results=False)
+            predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test)
+            validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation)
 
             for th_label in thresholds_labels:
                 columns = get_columns(dfs[th_label], ticker, method=th_label, columns=X_cr_train.columns)
-                chosen_columns.set_chosen_features(ticker=ticker, walk=walk, columns=columns)
+                chosen_columns.set_chosen_features(ticker=ticker, walk=walk, method=th_label, columns=columns)
 
-                looc_fi_regressor, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train, y_cr_train,
-                                                                                  X_cr_test, y_cr_test,
-                                                                                  columns=columns,
-                                                                                  suffix="_" + th_label,
-                                                                                  get_cross_validation_results=False)
+                looc_fi_regressor, looc_y_validation, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train,
+                                                                                                     y_cr_train,
+                                                                                                     x_validation=X_cr_validation,
+                                                                                                     y_validation=y_cr_validation,
+                                                                                                     x_test=X_cr_test,
+                                                                                                     y_cr_test=y_cr_test,
+                                                                                                     columns=columns,
+                                                                                                     suffix="_" + th_label,
+                                                                                                     get_cross_validation_results=False)
 
                 predictions_df = predictions_df.join(looc_y_cr_test)
+                validation_predictions_df = validation_predictions_df.join(looc_y_validation)
 
-            if not predictions_df.empty:
+            if not predictions_df.empty and not validation_predictions_df.empty:
                 total_df = pd.concat([total_df, predictions_df], axis=0)
-                metric_saver.set_metrics(ticker, idx, predictions_df)
+                validation_total_df = pd.concat([validation_total_df, validation_predictions_df], axis=0)
+                metric_saver.set_metrics(ticker, idx, validation_predictions_df, predictions_df)
 
         chosen_columns.save()
         metric_saver.save(env.output_folder)
+
         print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
-        strategy1 = StatArbRegression(total_df, 'predicted', k=args.k)
+        strategy1 = StatArbRegression(validation=validation_total_df, test=total_df, predicted_label='predicted', k=args.k)
         strategy1.generate_signals(output_folder=env.output_folder)
         strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 

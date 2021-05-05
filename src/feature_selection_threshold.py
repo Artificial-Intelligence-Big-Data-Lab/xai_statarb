@@ -57,7 +57,7 @@ def get_metrics(metrics, thresholds, label='worst', error_label='MSE'):
 
     df1 = test_df.copy()
 
-    df1['{0}'.format(error_label, label)] = test_df.apply(lambda x: get_error(x, th, error_label='MSE'), axis=1)
+    df1['{0}'.format(error_label)] = test_df.apply(lambda x: get_error(x, th, error_label='MSE'), axis=1)
     df1['removed_column'] = test_df.apply(lambda x: get_column(x, th), axis=1)
     df1['method'] = label
     return df1

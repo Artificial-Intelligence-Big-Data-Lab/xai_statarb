@@ -102,8 +102,9 @@ def compute_mdd(returns):
 
 
 class StatArbRegression:
-    def __init__(self, test: pd.DataFrame, predicted_label='predicted', label='label', k=5, folder=None):
+    def __init__(self, validation:pd.DataFrame, test: pd.DataFrame, predicted_label='predicted', label='label', k=5, folder=None):
         self.__test = test.copy()
+        self.__validation=validation.copy()
         if folder is not None and test.empty:
             self.__test = pd.read_csv(folder + '/totale.csv', ',', parse_dates=True)
 
@@ -195,9 +196,10 @@ class StatArbRegression:
             file="stdout", flush=True)
 
         if 'output_folder' in kwargs:
-            outputfolder = kwargs.get('output_folder')
+            output_folder = kwargs.get('output_folder')
 
-            self.__test[self.__columns].to_csv(outputfolder + '/totale.csv')
+            self.__test[self.__columns].to_csv(output_folder + '/totale.csv')
+            self.__validation[self.__columns].to_csv(output_folder + '/validation_totale.csv')
 
         return self.__valore_giornaliero_pred, self.__valore_giornaliero_exp
 

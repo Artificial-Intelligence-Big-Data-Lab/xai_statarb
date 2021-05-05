@@ -2,9 +2,17 @@ import sys
 import time
 import pandas as pd
 
-from sklearn.metrics import mean_absolute_error,mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from src import mda, hit_count
+
+
+def init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test):
+    predictions_df = X_cr_test.copy()
+    predictions_df = pd.concat([predictions_df, y_cr_test], axis=1)
+    predictions_df = predictions_df.join(b_y_test)
+    predictions_df['ticker'] = ticker
+    return predictions_df
 
 
 def get_prediction_performance_results(y_cr_test, show=True, suffix=''):
