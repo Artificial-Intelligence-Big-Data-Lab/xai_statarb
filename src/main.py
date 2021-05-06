@@ -19,7 +19,7 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:20]  #
+    tickers = tickers[:6]  #
     # tickers = [
     # 'FP.PA',
     #         '0001.HK', '0003.HK']
@@ -40,7 +40,7 @@ def main(args):
 
     methods = get_methods(args)
     metrics_all = pd.DataFrame()
-    company_feature_builder = CompanyFeatures(env.test_folder)
+    company_feature_builder = CompanyFeatures(env.test_folder, feature_type=args.data_type)
     chosen_columns = SelectedColumns(save_path=DATA_PATH, test_run=args.test_no)
     metric_saver = MetricsSaver(labels=thresholds_labels)
 
@@ -68,6 +68,7 @@ def main(args):
                                                                           x_validation=X_cr_validation,
                                                                           y_validation=y_cr_validation,
                                                                           x_test=X_cr_test, y_cr_test=y_cr_test,
+                                                                          data_type=args.data_type,
                                                                           get_cross_validation_results=False)
 
             metric_single_baseline = get_prediction_performance_results(b_y_validation, False)
@@ -75,7 +76,7 @@ def main(args):
 
             metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
 
-            for method, transformer in {args.data_type: methods[args.data_type]}.items():
+            for method, transformer in {args.method: methods[args.method]}.items():
                 for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
                                                                                                y_cr_train,
                                                                                                X_cr_validation,
@@ -86,6 +87,7 @@ def main(args):
                                                                                                       y_validation=y_cr_validation,
                                                                                                       x_test=X_cr_test,
                                                                                                       y_cr_test=y_cr_test,
+                                                                                                      data_type=args.data_type,
                                                                                                       columns=columns,
                                                                                                       get_cross_validation_results=False)
                     metrics_fi_looc = get_prediction_performance_results(looc_y_validation, False)
@@ -130,8 +132,9 @@ def main(args):
                                                                           x_validation=X_cr_validation,
                                                                           y_validation=y_cr_validation,
                                                                           x_test=X_cr_test, y_cr_test=y_cr_test,
-                                                                          suffix='_baseline',
-                                                                          get_cross_validation_results=False)
+                                                                          data_type=args.data_type,
+                                                                          get_cross_validation_results=False,
+                                                                          suffix='_baseline')
             predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test)
             validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation)
 
@@ -145,9 +148,10 @@ def main(args):
                                                                                                      y_validation=y_cr_validation,
                                                                                                      x_test=X_cr_test,
                                                                                                      y_cr_test=y_cr_test,
+                                                                                                     data_type=args.data_type,
                                                                                                      columns=columns,
-                                                                                                     suffix="_" + th_label,
-                                                                                                     get_cross_validation_results=False)
+                                                                                                     get_cross_validation_results=False,
+                                                                                                     suffix="_" + th_label)
 
                 predictions_df = predictions_df.join(looc_y_cr_test)
                 validation_predictions_df = validation_predictions_df.join(looc_y_validation)
@@ -175,9 +179,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--data_type',
+        '--method',
         choices=['mdi', 'sp', 'pi', 'pi_wd'],
         default='pi',
+        type=str)
+
+    parser.add_argument(
+        '--data-type',
+        choices=['cr', 'lr', 'ti'],
+        default='ti',
         type=str)
 
     parser.add_argument(
