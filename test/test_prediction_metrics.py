@@ -2,7 +2,8 @@ import datetime
 from typing import List
 from unittest import TestCase
 
-from src import *
+from src.metrics import SelectedColumns
+from src.walkforward import *
 
 
 class TestSelectedColumnsTestCase(TestCase):
