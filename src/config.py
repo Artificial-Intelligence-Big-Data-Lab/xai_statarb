@@ -1,4 +1,4 @@
-from .feature_selection import RFFeatureImportanceSelector, LIMEFeatureImportanceSelector, PISelector, \
+from feature_selection import RFFeatureImportanceSelector, LIMEFeatureImportanceSelector, PISelector, \
     WassersteinFeatureImportanceSelector
 
 threshold_columns = {'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best',
