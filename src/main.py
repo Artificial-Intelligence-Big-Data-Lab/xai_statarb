@@ -3,16 +3,15 @@ import datetime
 import random
 import time
 
-import pandas as pd
-
-import feature_selection as fs
 from feature_selection_threshold import *
 from get_model_input import *
+from metrics import MetricsSaver, SelectedColumns
 from models import get_fit_regressor
-from src import WalkForward, SelectedColumns, MetricsSaver
-from src.utils import get_prediction_performance_results, add_metrics_information, add_context_information, \
-    init_prediction_df
 from statarbregression import *
+from utils import get_prediction_performance_results, add_metrics_information, add_context_information, \
+    init_prediction_df
+from walkforward import WalkForward
+from config import *
 
 DATA_PATH = '../LIME/data/'
 
@@ -20,7 +19,7 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:2]  #
+    tickers = tickers[:20]  #
     # tickers = [
     # 'FP.PA',
     #         '0001.HK', '0003.HK']
@@ -29,12 +28,7 @@ def main(args):
 
     all_metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_all_{0}.csv'.format(args.test_no)
     thresholds_path = DATA_PATH + 'LOOC_thresholds_{0}.csv'.format(args.test_no)
-
-    thresholds = pd.DataFrame(columns={'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best',
-                                       'threshold_worst', 'error_worst', 'no_improvements_worst', 'ratio_worst',
-                                       'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
-                                       })
-    thresholds_labels = ['best', 'worst', 'running']
+    thresholds = pd.DataFrame(columns=threshold_columns)
     env = Environment(tickers=tickers, args=args)
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
@@ -44,18 +38,7 @@ def main(args):
                      test_period_length=args.test_length,
                      no_walks=args.no_walks)
 
-    methods = {
-        'mdi': fs.RFFeatureImportanceSelector(args.no_features),
-        'sp': fs.LIMEFeatureImportanceSelector(args.no_features),
-        # 'pi': fs.PermutationImportanceSelector(features_no, seed=42),
-        'pi': fs.PISelector(seed=42, num_rounds=args.num_rounds),
-        # 'pi_all': fs.PermutationImportanceSelector(seed=42),
-        # 'pi3_all': fs.PISelectorUnormalized(seed=42),
-        # 'pi_kl_all': fs.PIJensenShannonSelector(seed=42),
-        'pi_wd': fs.WassersteinFeatureImportanceSelector(seed=42),
-        # "pi_mse": fs.PISelectorKBest(seed=42),
-        # "pi_mae": fs.PermutationImportanceSelectorKBest(seed=42)
-    }
+    methods = get_methods(args)
     metrics_all = pd.DataFrame()
     company_feature_builder = CompanyFeatures(env.test_folder)
     chosen_columns = SelectedColumns(save_path=DATA_PATH, test_run=args.test_no)
@@ -75,10 +58,9 @@ def main(args):
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
                 ticker=ticker, walk=walk)
 
-            chosen_columns.all_columns = X_cr_train.columns
-
             if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
                 continue
+            chosen_columns.all_columns = X_cr_train.columns
 
             context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
                            all_columns=X_cr_validation.columns)
@@ -179,7 +161,8 @@ def main(args):
         metric_saver.save(env.output_folder)
 
         print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
-        strategy1 = StatArbRegression(validation=validation_total_df, test=total_df, predicted_label='predicted', k=args.k)
+        strategy1 = StatArbRegression(validation=validation_total_df, test=total_df, predicted_label='predicted',
+                                      k=args.k)
         strategy1.generate_signals(output_folder=env.output_folder)
         strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 

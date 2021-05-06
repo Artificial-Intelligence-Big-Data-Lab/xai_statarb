@@ -4,7 +4,7 @@ import pandas as pd
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from src import mda, hit_count
+from metrics import mda, hit_count
 
 
 def init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test):

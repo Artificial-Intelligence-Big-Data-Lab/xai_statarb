@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from src import Walk
-from src.utils import print_info
+from walkforward import Walk
+from utils import print_info
 
 
 class Environment:

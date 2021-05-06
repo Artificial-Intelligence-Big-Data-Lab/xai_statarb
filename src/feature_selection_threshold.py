@@ -79,26 +79,35 @@ def get_errors_df_by_walk_5(metrics_df, thresholds, walk, metric='MSE', worst=Fa
     for idx, th in enumerate(thresholds):
         df = test_df[test_df['removed_FI'] <= th].copy()
 
-        intermediate = df.groupby(by='walk').agg(
-            error_diff_avg=pd.NamedAgg(column="error_diff", aggfunc="mean"),
-            error_diff_sum=pd.NamedAgg(column="error_diff", aggfunc="sum"),
-            positive_count=pd.NamedAgg(column="positive", aggfunc="sum"),
-            removed_count=pd.NamedAgg(column="positive", aggfunc="count"),
-        ).reset_index()
+        # intermediate = df.groupby(by='walk').agg(
+        #     error_diff_avg=pd.NamedAgg(column="error_diff", aggfunc="mean"),
+        #     error_diff_sum=pd.NamedAgg(column="error_diff", aggfunc="sum"),
+        #     positive_count=pd.NamedAgg(column="positive", aggfunc="sum"),
+        #     removed_count=pd.NamedAgg(column="positive", aggfunc="count"),
+        # ).reset_index()
+
+        intermediate = pd.concat([
+            df.groupby(by='walk').agg({'error_diff': 'mean'}).rename(columns={'error_diff': 'error_diff_avg'}),
+            df.groupby(by='walk').agg({'error_diff': 'sum'}).rename(columns={'error_diff': 'error_diff_sum'}),
+            df.groupby(by='walk').agg({'positive': 'sum'}).rename(columns={'positive': 'positive_count'}),
+            df.groupby(by='walk').agg({'positive': 'count'}).rename(columns={'positive': 'removed_count'})
+        ], axis=1).reset_index()
+        # intermediate.columns = intermediate.columns.droplevel(level=0)
+        # intermediate.reset_index(inplace=True)
 
         intermediate['threshold'] = th
         intermediate['index'] = idx
 
-        baseline = test_df[test_df['removed_FI'] <= 0].groupby(by='walk').agg(
-            error_diff_avg=pd.NamedAgg(column="error_diff", aggfunc="mean"),
-            error_diff_sum=pd.NamedAgg(column="error_diff", aggfunc="sum"),
-            positive_count=pd.NamedAgg(column="positive", aggfunc="sum"),
-            removed_count=pd.NamedAgg(column="positive", aggfunc="count"),
-        ).reset_index()
+        baseline = pd.concat([
+            test_df[test_df['removed_FI'] <= 0].groupby(by='walk').agg({'error_diff': 'mean'}).rename(columns={'error_diff': 'error_diff_avg'}),
+            test_df[test_df['removed_FI'] <= 0].groupby(by='walk').agg({'error_diff': 'sum'}).rename(columns={'error_diff': 'error_diff_sum'}),
+            test_df[test_df['removed_FI'] <= 0].groupby(by='walk').agg({'positive': 'sum'}).rename(columns={'positive': 'positive_count'}),
+            test_df[test_df['removed_FI'] <= 0].groupby(by='walk').agg({'positive': 'count'}).rename(columns={'positive': 'removed_count'})
+        ], axis=1).reset_index()
 
         intermediate = intermediate.merge(baseline, left_on=['walk'], right_on=['walk'], suffixes=('', '_baseline'),
                                           how='right')
-        errors = pd.concat([errors, intermediate])
+        errors = pd.concat([errors, intermediate], sort=False)
 
     return errors
 
@@ -119,12 +128,12 @@ def get_errors_df_by_walk_3(metrics_df, thresholds, walk, metric='MSE', worst=Fa
                                                  'positive_count', 'removed_count'])
             intermediate['walk'] = walk
         else:
-            intermediate = test.groupby(by='walk').agg(
-                error_diff_avg=pd.NamedAgg(column="error_diff", aggfunc="mean"),
-                error_diff_sum=pd.NamedAgg(column="error_diff", aggfunc="sum"),
-                positive_count=pd.NamedAgg(column="positive", aggfunc="sum"),
-                removed_count=pd.NamedAgg(column="positive", aggfunc="count"),
-            ).reset_index()
+            intermediate = pd.concat([
+                test.groupby(by='walk').agg({'error_diff': 'mean'}).rename(columns={'error_diff': 'error_diff_avg'}),
+                test.groupby(by='walk').agg({'error_diff': 'sum'}).rename(columns={'error_diff': 'error_diff_sum'}),
+                test.groupby(by='walk').agg({'positive': 'sum'}).rename(columns={'positive': 'positive_count'}),
+                test.groupby(by='walk').agg({'positive': 'count'}).rename(columns={'positive': 'removed_count'})
+            ], axis=1).reset_index()
 
         intermediate['threshold'] = th
         intermediate['index'] = idx
@@ -156,5 +165,5 @@ def get_optimal_threshold(metrics_all, walk, labels):
 
 
 def get_optimal_threshold_strategy(metrics_df):
-    th_index = metrics_df['error_diff_avg'].argmax()
+    th_index = metrics_df['error_diff_avg'].idxmax()
     return th_index

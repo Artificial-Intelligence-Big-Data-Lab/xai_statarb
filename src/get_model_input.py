@@ -42,12 +42,13 @@ def get_data_from_file(ticker: str, folder, date_start, date_end):
         data_df['Date'] = pd.to_datetime(data_df['Date'])
         data_df.set_index('Date', inplace=True)
         data_df = data_df[date_start:date_end]
-        # data_df.reset_index(inplace=True)
     return data_df
 
 
 def get_data_online(ticker: str, date_start, date_end):
-    data = yf.download(ticker, start=date_start, end=date_end)  # ,'2018-01-01')
+    data = yf.download(ticker, start=date_start, end=date_end)
+    if data is None:
+        return pd.DataFrame()
     feature_df = get_cumulative_returns(data, ticker)
     label_df = get_target(data, ticker)
     df1 = pd.concat([feature_df, label_df], axis=1)
@@ -95,7 +96,7 @@ class CompanyFeatures:
                                          date_end=walk.test.end)
 
         if x_df.empty or y_df.empty:
-            return None, None, None, None, None, None
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
         start_test = walk.test.start
         validation_start = walk.validation.start

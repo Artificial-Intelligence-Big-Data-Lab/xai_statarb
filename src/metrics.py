@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 
-from src import Walk
+from walkforward import Walk
 
 
 def rmse(y, p):
@@ -91,7 +91,6 @@ class MetricsSaver:
 
 
 class SelectedColumns:
-    __feature_columns: []
 
     def __init__(self, save_path, test_run):
         self.__test_run = test_run
