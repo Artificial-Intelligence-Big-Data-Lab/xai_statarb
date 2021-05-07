@@ -1,13 +1,15 @@
+import os
+
+import numpy as np
 import pandas as pd
+import ta as ta
 import yfinance as yf
 
 from walkforward import Walk
-import os
-import ta as ta
 
 
 def disparity(close, n_pmav):
-    return pd.Series(close * 100 / close.rolling(n_pmav).mean(), name=f'disp_{n_pmav}')
+    return pd.Series(close * 100 / close.rolling(n_pmav).mean(), name='disp_{0}'.format(n_pmav))
 
 
 def get_cumulative_returns(data: pd.DataFrame, ticker):
@@ -29,7 +31,7 @@ def get_technical_indicators(data: pd.DataFrame, ticker):
     roc = ta.momentum.roc(data['Close'], window=12)
     rsi = ta.momentum.rsi(data['Close'], window=14)
     accd = ta.volume.AccDistIndexIndicator(data['High'], data['Low'], data['Close'],
-                                           data['Volume'] )
+                                           data['Volume'])
     macd = ta.trend.macd(data['Close'])
     ema = ta.trend.ema_indicator(data['Close'])
     stock_k = ta.momentum.stochrsi_k(data['Close'], window=14)
@@ -103,7 +105,7 @@ class CompanyFeatures:
 
     def __get_data_online(self, ticker: str, date_start, date_end):
         data = yf.download(ticker, start=date_start, end=date_end)
-        if data is None:
+        if data is None or len(data) == 0:
             return pd.DataFrame()
         if self.__feature_type == 'cr':
             feature_df = get_cumulative_returns(data, ticker)
@@ -127,11 +129,14 @@ class CompanyFeatures:
         pandas DataFrame
         """
         data_df = get_data_from_file(ticker, folder, date_start, date_end)
+
         if data_df.empty:
             data_df = self.__get_data_online(ticker, date_start, date_end)
 
         if data_df.empty:
             return data_df, data_df
+
+        data_df = data_df[~data_df.isin([np.nan, np.inf, -np.inf]).any(1)]
 
         if not data_df.empty:
             data_df.to_csv("{0}{1}.csv".format(folder, ticker), index=False)

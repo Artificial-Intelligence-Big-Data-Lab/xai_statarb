@@ -3,6 +3,7 @@ import datetime
 import random
 import time
 
+from config import *
 from feature_selection_threshold import *
 from get_model_input import *
 from metrics import MetricsSaver, SelectedColumns
@@ -11,7 +12,6 @@ from statarbregression import *
 from utils import get_prediction_performance_results, add_metrics_information, add_context_information, \
     init_prediction_df
 from walkforward import WalkForward
-from config import *
 
 DATA_PATH = '../LIME/data/'
 
@@ -19,10 +19,11 @@ DATA_PATH = '../LIME/data/'
 def main(args):
     constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
     tickers = constituents['Ticker']
-    tickers = tickers[:6]  #
-    # tickers = [
-    # 'FP.PA',
-    #         '0001.HK', '0003.HK']
+    # tickers = tickers[:6]
+    # tickers = set(tickers) | set(['CPG'])
+    tickers = [
+        'UG.PA','CPG', 'FP.PA',
+        '0001.HK', '0003.HK']
 
     random.seed(30)
 
@@ -58,7 +59,7 @@ def main(args):
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
                 ticker=ticker, walk=walk)
 
-            if len(X_cr_train) == 0 or len(y_cr_validation) == 0:
+            if len(X_cr_train) == 0 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
             chosen_columns.all_columns = X_cr_train.columns
 
@@ -125,7 +126,7 @@ def main(args):
                 ticker=ticker,
                 walk=walk)
 
-            if len(X_cr_train) == 0 or len(y_cr_test) == 0:
+            if len(X_cr_train) == 0 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
 
             baseline, b_y_validation, b_y_test, score = get_fit_regressor(X_cr_train, y_cr_train,
@@ -185,7 +186,7 @@ if __name__ == "__main__":
         type=str)
 
     parser.add_argument(
-        '--data-type',
+        '--data_type',
         choices=['cr', 'lr', 'ti'],
         default='ti',
         type=str)
@@ -193,7 +194,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--start_date',
         help='Start date "%Y-%m-%d" format',
-        default='2007-01-01',
+        default='2006-01-01',
         type=str)
     parser.add_argument(
         '--end_date',
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--train_length',
         help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
-        default='4Y',
+        default='3Y',
         type=str)
     parser.add_argument(
         '--validation_length',
