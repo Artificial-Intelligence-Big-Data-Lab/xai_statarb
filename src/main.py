@@ -59,7 +59,7 @@ def main(args):
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
                 ticker=ticker, walk=walk)
 
-            if len(X_cr_train) == 0 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
+            if len(X_cr_train) < 252 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
             chosen_columns.all_columns = X_cr_train.columns
 
@@ -70,6 +70,7 @@ def main(args):
                                                                           y_validation=y_cr_validation,
                                                                           x_test=X_cr_test, y_cr_test=y_cr_test,
                                                                           data_type=args.data_type,
+                                                                          model_type=args.model_type,
                                                                           get_cross_validation_results=False)
 
             metric_single_baseline = get_prediction_performance_results(b_y_validation, False)
@@ -89,6 +90,7 @@ def main(args):
                                                                                                       x_test=X_cr_test,
                                                                                                       y_cr_test=y_cr_test,
                                                                                                       data_type=args.data_type,
+                                                                                                      model_type=args.model_type,
                                                                                                       columns=columns,
                                                                                                       get_cross_validation_results=False)
                     metrics_fi_looc = get_prediction_performance_results(looc_y_validation, False)
@@ -134,6 +136,7 @@ def main(args):
                                                                           y_validation=y_cr_validation,
                                                                           x_test=X_cr_test, y_cr_test=y_cr_test,
                                                                           data_type=args.data_type,
+                                                                          model_type=args.model_type,
                                                                           get_cross_validation_results=False,
                                                                           suffix='_baseline')
             predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test)
@@ -150,6 +153,7 @@ def main(args):
                                                                                                      x_test=X_cr_test,
                                                                                                      y_cr_test=y_cr_test,
                                                                                                      data_type=args.data_type,
+                                                                                                     model_type=args.model_type,
                                                                                                      columns=columns,
                                                                                                      get_cross_validation_results=False,
                                                                                                      suffix="_" + th_label)
@@ -186,6 +190,12 @@ if __name__ == "__main__":
         type=str)
 
     parser.add_argument(
+        '--model_type',
+        choices=['rf', 'svr', 'lgb'],
+        default='lgb',
+        type=str)
+
+    parser.add_argument(
         '--data_type',
         choices=['cr', 'lr', 'ti'],
         default='ti',
@@ -204,7 +214,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--no_walks',
         help='Number of walks',
-        default='7',
+        default='2',
         type=int)
     parser.add_argument(
         '--no_features',
@@ -239,7 +249,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--test_no',
         help='Test number to identify the experiments',
-        default=11,
+        default=19,
         type=int)
     args_in = parser.parse_args()
 

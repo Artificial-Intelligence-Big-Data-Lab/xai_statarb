@@ -45,20 +45,17 @@ class MetricsSaver:
         label_array = labels.copy()
         label_array.extend(['baseline'])
         self.__labels = label_array
-        self.__init_df(label_array)
-
-    def __init_df(self, labels: []):
 
         columns = ['ticker', 'walk']
-        columns.extend(['MSE_test_' + col for col in labels])
-        columns.extend(['RMSE_test_' + col for col in labels])
-        columns.extend(['MDA_test_' + col for col in labels])
-        columns.extend(['no_improvements_test_' + col for col in labels])
+        columns.extend(['MSE_test_' + col for col in label_array])
+        columns.extend(['RMSE_test_' + col for col in label_array])
+        columns.extend(['MDA_test_' + col for col in label_array])
+        columns.extend(['no_improvements_test_' + col for col in label_array])
 
-        columns.extend(['MSE_validation_' + col for col in labels])
-        columns.extend(['RMSE_validation_' + col for col in labels])
-        columns.extend(['MDA_validation_' + col for col in labels])
-        columns.extend(['no_improvements_validation_' + col for col in labels])
+        columns.extend(['MSE_validation_' + col for col in label_array])
+        columns.extend(['RMSE_validation_' + col for col in label_array])
+        columns.extend(['MDA_validation_' + col for col in label_array])
+        columns.extend(['no_improvements_validation_' + col for col in label_array])
 
         self.__all_columns = columns
         self.__metrics = pd.DataFrame(columns=columns)
@@ -87,14 +84,13 @@ class MetricsSaver:
 
     def save(self, folder):
         self.__metrics[self.__all_columns].to_csv(folder + '/metrics.csv', index=False)
-        self.__init_df(self.__labels)
+        self.__metrics = pd.DataFrame(columns=self.__all_columns)
 
 
 class SelectedColumns:
 
-    def __init__(self, save_path, test_run):
-        self.__test_run = test_run
-        self.__file = save_path + 'LOOC_selected_columns_{0}.csv'.format(test_run)
+    def __init__(self, save_path):
+        self.__file = save_path + 'LOOC_selected_columns.csv'
         self.__feature_columns = None
         self.__all_columns = ['ticker', 'walk', 'method']
         self.__df = None
