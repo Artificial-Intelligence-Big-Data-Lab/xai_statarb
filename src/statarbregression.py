@@ -1,21 +1,23 @@
 import os
 import shutil
 from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
-from walkforward import Walk
 from utils import print_info
+from walkforward import Walk
 
 
 class Environment:
 
     def __init__(self, tickers, args, base_folder='../LIME'):
         self.__base_folder = base_folder
-        self.__test_folder = base_folder + '/test/'
+        self.__test_folder = base_folder + '/{0}/test/'.format(args.test_no)
+        self.__args = args
         self.__file_names = [ticker + '.csv' if '.csv' not in ticker else ticker for ticker in tickers]
-        self.__setup_folders(base_folder)
+        self.__setup_folders(self.__base_folder+'/{0}/'.format(args.test_no))
         self.__walk = None
         self.prediction_params = {
             'train': args.train_length,
@@ -23,6 +25,9 @@ class Environment:
             'test': args.test_length,
             'walks': args.no_walks,
         }
+        f = open(self.__base_folder+'/{0}/input_parameters.txt'.format(self.__args.test_no), 'w+')
+        f.write("Parameters: {0}\n".format(self.__args))
+        f.close()
 
     @property
     def walk(self):
@@ -69,7 +74,7 @@ class Environment:
         if not Path(test_folder).exists():
             os.mkdir(test_folder)
 
-        self.__statistical_arbitrage_folder = './' + prediction_method + '/StatisticalArbitrage/'
+        self.__statistical_arbitrage_folder = './{0}/StatisticalArbitrage/'.format(prediction_method)
 
         if not Path(self.__statistical_arbitrage_folder).exists():
             os.mkdir(self.__statistical_arbitrage_folder)
@@ -102,9 +107,10 @@ def compute_mdd(returns):
 
 
 class StatArbRegression:
-    def __init__(self, validation:pd.DataFrame, test: pd.DataFrame, predicted_label='predicted', label='label', k=5, folder=None):
+    def __init__(self, validation: pd.DataFrame, test: pd.DataFrame, predicted_label='predicted', label='label', k=5,
+                 folder=None):
         self.__test = test.copy()
-        self.__validation=validation.copy()
+        self.__validation = validation.copy()
         if folder is not None and test.empty:
             self.__test = pd.read_csv(folder + '/totale.csv', ',', parse_dates=True)
 
@@ -119,8 +125,8 @@ class StatArbRegression:
     def compute_long_short(self, label, ground_truth=False):
         active_range = set(range(0, self.__k, 1))
 
-        long_pred = self.__test.sort_values([label], ascending=True).groupby(['Date']).nth(active_range)
-        short_pred = self.__test.sort_values([label], ascending=False).groupby(['Date']).nth(active_range)
+        long_pred = self.__test.sort_values([label], ascending=False).groupby(['Date']).nth(active_range)
+        short_pred = self.__test.sort_values([label], ascending=True).groupby(['Date']).nth(active_range)
 
         long_bydate_pred = long_pred.groupby(['Date'])[self.label].agg([('value', 'sum'), ('no', 'count')])
         short_bydate_pred = short_pred.groupby(['Date'])[self.label].agg([('value', 'sum'), ('no', 'count')])
@@ -128,7 +134,7 @@ class StatArbRegression:
         long_bydate_pred = long_bydate_pred[long_bydate_pred['no'] >= self.__k]
         short_bydate_pred = short_bydate_pred[short_bydate_pred['no'] >= self.__k]
 
-        valore_giornaliero_pred = (short_bydate_pred['value'] - long_bydate_pred['value']) / (
+        valore_giornaliero_pred = (- short_bydate_pred['value'] + long_bydate_pred['value']) / (
                 long_bydate_pred['no'] + short_bydate_pred['no']) * 100
 
         return valore_giornaliero_pred, long_pred[['ticker', self.label, label]], short_pred[
@@ -267,5 +273,3 @@ class StatArbRegression:
         ax_cumm.legend()
         fig_cumm.savefig(output_folder + '/curvareturn.png')
         plt.close()
-
-

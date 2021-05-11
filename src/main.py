@@ -13,22 +13,22 @@ from utils import get_prediction_performance_results, add_metrics_information, a
     init_prediction_df
 from walkforward import WalkForward
 
-DATA_PATH = '../LIME/data/'
+# DATA_PATH = '../LIME/data/'
+BASE_PATH = '../LIME/'
 
 
 def main(args):
-    constituents = pd.read_csv(DATA_PATH + 'constituents.csv')
+    constituents = pd.read_csv(BASE_PATH + 'data/constituents.csv')
     tickers = constituents['Ticker']
-    # tickers = tickers[:6]
-    # tickers = set(tickers) | set(['CPG'])
-    tickers = [
-        'UG.PA','CPG', 'FP.PA',
-        '0001.HK', '0003.HK']
+    tickers = tickers[:20]
+    # tickers = set(tickers) | set(['ICE'])
+    # tickers = ['UG.PA', 'CPG', 'FP.PA',
+    #     '0001.HK', '0003.HK']
 
     random.seed(30)
 
-    all_metrics_output_path = DATA_PATH + 'LOOC_metrics_cr_all_{0}.csv'.format(args.test_no)
-    thresholds_path = DATA_PATH + 'LOOC_thresholds_{0}.csv'.format(args.test_no)
+    all_metrics_output_path = BASE_PATH + '{0}/LOOC_metrics_cr_all.csv'.format(args.test_no)
+    thresholds_path = BASE_PATH + '{0}/LOOC_thresholds.csv'.format(args.test_no)
     thresholds = pd.DataFrame(columns=threshold_columns)
     env = Environment(tickers=tickers, args=args)
 
@@ -42,7 +42,7 @@ def main(args):
     methods = get_methods(args)
     metrics_all = pd.DataFrame()
     company_feature_builder = CompanyFeatures(env.test_folder, feature_type=args.data_type)
-    chosen_columns = SelectedColumns(save_path=DATA_PATH, test_run=args.test_no)
+    chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no))
     metric_saver = MetricsSaver(labels=thresholds_labels)
 
     for idx, walk in wf.get_walks():
