@@ -18,9 +18,7 @@ BASE_PATH = '../LIME/'
 
 def main(args):
     constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
-    tickers = constituents['Ticker']
-    sectors = constituents['Sector']
-    tickers = tickers[:20]
+    constituents = constituents[:20]
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
     #     '0001.HK', '0003.HK']
@@ -30,7 +28,7 @@ def main(args):
     all_metrics_output_path = BASE_PATH + '{0}/LOOC_metrics_cr_all.csv'.format(args.test_no)
     thresholds_path = BASE_PATH + '{0}/LOOC_thresholds.csv'.format(args.test_no)
     thresholds = pd.DataFrame(columns=threshold_columns)
-    env = Environment(tickers=tickers, args=args)
+    env = Environment(tickers=constituents['Ticker'], sectors=constituents['Sector'].unique(), args=args)
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
                      datetime.datetime.strptime(args.end_date, '%Y-%m-%d'),
@@ -41,7 +39,8 @@ def main(args):
 
     methods = get_methods(args)
     metrics_all = pd.DataFrame()
-    company_feature_builder = CompanyFeatures(env.test_folder, feature_type=args.data_type)
+    company_feature_builder = CompanyFeatures(constituents=constituents, folder_output=env.test_folder,
+                                              feature_type=args.data_type, prediction_type=args.prediction_type)
     chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no))
     metric_saver = MetricsSaver(labels=thresholds_labels)
 
@@ -50,17 +49,18 @@ def main(args):
         env.cleanup()
         env.walk = walk
 
-        for ticker in tickers:
+        for ticker, constituents_batch in company_feature_builder.get_entities():
 
-            print_info('*' * 20 + ticker + '*' * 20)
+            print_info("{0}{1}{2}".format('*' * 20, ticker, '*' * 20))
 
             start_time = time.perf_counter()
 
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
-                ticker=ticker, walk=walk)
+                constituents_batch=constituents_batch, walk=walk)
 
             if len(X_cr_train) < 252 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
+
             chosen_columns.all_columns = X_cr_train.columns
 
             context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
@@ -124,10 +124,10 @@ def main(args):
         total_df = pd.DataFrame()
         validation_total_df = pd.DataFrame()
 
-        for ticker in tickers:
+        for ticker, constituents_batch in company_feature_builder.get_entities():
 
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
-                ticker=ticker,
+                constituents_batch=constituents_batch,
                 walk=walk)
 
             if len(X_cr_train) == 0 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
@@ -246,7 +246,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=22,
+                        default=24,
                         type=int)
     args_in = parser.parse_args()
 

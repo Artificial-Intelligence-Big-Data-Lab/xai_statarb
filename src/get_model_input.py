@@ -20,9 +20,8 @@ def get_cumulative_returns(data: pd.DataFrame, ticker):
         dummy_ret = pd.DataFrame((data['Close'].shift(1) - data['Open'].shift(i)) / data['Open'].shift(i),
                                  columns=[columns_name])
         clr_df = pd.concat([clr_df, dummy_ret], axis=1)
-    clr_df['ticker'] = ticker
     clr_df.reset_index(inplace=True)
-    clr_df.set_index(['Date', 'ticker'], inplace=True)
+    clr_df.set_index(['Date'], inplace=True)
     return clr_df
 
 
@@ -40,8 +39,7 @@ def get_technical_indicators(data: pd.DataFrame, ticker):
     ti_df = pd.concat([wr.williams_r(), roc, rsi, accd.acc_dist_index(), macd, ema, stock_k, disp5, disp10], axis=1)
     ti_df = ti_df.shift(1)
     ti_df.reset_index(inplace=True)
-    ti_df.loc[:, 'ticker'] = ticker
-    ti_df.set_index(['Date', 'ticker'], inplace=True)
+    ti_df.set_index(['Date'], inplace=True)
     return ti_df
 
 
@@ -54,9 +52,8 @@ def get_target(data_df: pd.DataFrame, ticker):
     ticker : string
     """
     label_df = pd.DataFrame(data=(data_df['Close'] - data_df['Open']) / data_df['Open'], columns=['label'])
-    label_df['ticker'] = ticker
     label_df.reset_index(inplace=True)
-    label_df.set_index(['Date', 'ticker'], inplace=True)
+    label_df.set_index(['Date'], inplace=True)
     return label_df
 
 
@@ -73,7 +70,7 @@ def get_data_from_file(ticker: str, folder, date_start, date_end):
 
 
 class CompanyFeatures:
-    def __init__(self, folder_output: str, feature_type='cr'):
+    def __init__(self, constituents: pd.DataFrame, folder_output: str, feature_type='cr', prediction_type='company'):
         """
         Parameters
         ----------
@@ -81,27 +78,61 @@ class CompanyFeatures:
         """
         self.folder = folder_output
         self.__feature_type = feature_type
+        self.__prediction_type = prediction_type
+        self.__constituents = constituents
 
-    def get_features(self, ticker: str, walk: Walk):
-        x_df, y_df = self.__get_data_for_ticker(ticker, folder=self.folder, date_start=walk.train.start,
-                                                date_end=walk.test.end)
+    def get_entities(self):
+        if self.__prediction_type == 'company':
+            for idx in range(len(self.__constituents)):
+                row = pd.DataFrame([self.__constituents.iloc[idx]])
+                yield row['Ticker'].values[0], row
+        else:
+            for group in self.__constituents.groupby(by=['Sector'], as_index=False):
+                yield group['Sector'].values[0], group
 
-        if x_df.empty or y_df.empty:
-            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    def get_features(self, constituents_batch, walk: Walk):
 
-        start_test = walk.test.start
-        validation_start = walk.validation.start
+        idx = pd.IndexSlice
+        # data.loc[idx[ticker, :], :].droplevel('ticker', axis=0)
+        x_train, y_train = pd.DataFrame(), pd.DataFrame()
+        x_validation, y_validation = pd.DataFrame(), pd.DataFrame()
+        x_test, y_test = pd.DataFrame(), pd.DataFrame()
 
-        X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
-        X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
-                                                                                  validation_start:start_test]
-        X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
+        for ticker in constituents_batch['Ticker'].values:
+            x_df, y_df = self.__get_data_for_ticker(ticker, folder=self.folder, date_start=walk.train.start,
+                                                    date_end=walk.test.end)
 
-        print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
-        print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
-        print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
+            if x_df.empty or y_df.empty:
+                continue
 
-        return X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test
+            start_test = walk.test.start
+            validation_start = walk.validation.start
+
+            X_cr_train, y_cr_train = x_df.loc[:validation_start], y_df.loc[:validation_start]
+            X_cr_train = X_cr_train.reset_index().set_index(['Date', 'ticker'])
+            y_cr_train = y_cr_train.reset_index().set_index(['Date', 'ticker'])
+
+            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
+                                                                                      validation_start:start_test]
+            X_cr_validation = X_cr_validation.reset_index().set_index(['Date', 'ticker'])
+            y_cr_validation = y_cr_validation.reset_index().set_index(['Date', 'ticker'])
+
+            X_cr_test, y_cr_test = x_df.loc[start_test:], y_df.loc[start_test:]
+            X_cr_test = X_cr_test.reset_index().set_index(['Date', 'ticker'])
+            y_cr_test = y_cr_test.reset_index().set_index(['Date', 'ticker'])
+
+            x_train, y_train = pd.concat([x_train, X_cr_train], sort=False), pd.concat([y_train, y_cr_train],
+                                                                                       sort=False)
+            x_validation = pd.concat([x_validation, X_cr_validation], sort=False)
+            y_validation = pd.concat([y_validation, y_cr_validation], sort=False)
+
+            x_test, y_test = pd.concat([x_test, X_cr_test], sort=False), pd.concat([y_test, y_cr_test], sort=False)
+
+            print('{0} train {1} {2}'.format(ticker, X_cr_train.index.min(), X_cr_train.index.max()))
+            print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
+            print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
+
+        return x_train, y_train, x_validation, y_validation, x_test, y_test
 
     def __get_data_online(self, ticker: str, date_start, date_end):
         data = yf.download(ticker, start=date_start, end=date_end)
@@ -117,9 +148,10 @@ class CompanyFeatures:
         label_df = get_target(data, ticker)
         df1 = pd.concat([feature_df, label_df], axis=1)
         df1.dropna(inplace=True)
-        data_df = df1.loc[[i for i in df1.index if i[1] == ticker]].copy()
-        data_df.reset_index(inplace=True)
-        return data_df
+        df1.loc[:, 'ticker'] = ticker
+        # data_df = df1.loc[[i for i in df1.index if i[1] == ticker]].copy()
+        df1.reset_index(inplace=True)
+        return df1
 
     def __get_data_for_ticker(self, ticker: str, folder: str, date_start, date_end):
         """
@@ -142,7 +174,7 @@ class CompanyFeatures:
             data_df.to_csv("{0}{1}.csv".format(folder, ticker), index=False)
 
         if 'Date' in data_df.columns:
-            data_df.set_index(['Date', 'ticker'], inplace=True)
-        X = data_df[[c for c in data_df.columns if c not in ['Date', 'ticker', 'label']]]
-        y = data_df[['label']]
+            data_df.set_index(['Date'], inplace=True)
+        X = data_df[[c for c in data_df.columns if c not in ['Date', 'label']]]
+        y = data_df[['ticker', 'label']]
         return X, y
