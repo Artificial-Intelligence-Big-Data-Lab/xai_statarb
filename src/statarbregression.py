@@ -12,12 +12,22 @@ from walkforward import Walk
 
 class Environment:
 
-    def __init__(self, tickers, args, base_folder='../LIME'):
+    def __init__(self, tickers, args, sectors=None, base_folder='../LIME'):
         self.__base_folder = base_folder
         self.__test_folder = base_folder + '/{0}/test/'.format(args.test_no)
+
         self.__args = args
-        self.__file_names = [ticker + '.csv' if '.csv' not in ticker else ticker for ticker in tickers]
-        self.__setup_folders(self.__base_folder+'/{0}/'.format(args.test_no))
+
+        if args.prediction_type == 'company' and (tickers is None or len(tickers) == 0):
+            raise ValueError("Must provide at least a company to predict")
+        if args.prediction_type == 'sector' and (sectors is None or len(sectors) == 0):
+            raise ValueError("Must provide at least one sector to predict")
+        if args.prediction_type == 'company':
+            self.__file_names = [ticker + '.csv' if '.csv' not in ticker else ticker for ticker in tickers]
+        else:
+            self.__file_names = [sector + 'csv' if '.csv' not in sector else sector for sector in sectors]
+
+        self.__setup_folders(self.__base_folder + '/{0}/'.format(args.test_no))
         self.__walk = None
         self.prediction_params = {
             'train': args.train_length,
@@ -25,7 +35,7 @@ class Environment:
             'test': args.test_length,
             'walks': args.no_walks,
         }
-        f = open(self.__base_folder+'/{0}/input_parameters.txt'.format(self.__args.test_no), 'w+')
+        f = open(self.__base_folder + '/{0}/input_parameters.txt'.format(self.__args.test_no), 'w+')
         f.write("Parameters: {0}\n".format(self.__args))
         f.close()
 
@@ -60,11 +70,7 @@ class Environment:
                 os.remove(test_folder + ticker)
 
     def cleanup(self):
-        self._cleanup_folder(self.test_folder, self.company_names)
-
-    @property
-    def company_names(self):
-        return self.__file_names
+        self._cleanup_folder(self.test_folder, self.__file_names)
 
     def __setup_folders(self, prediction_method):
         if not Path('./' + prediction_method + '/').exists():

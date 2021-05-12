@@ -6,47 +6,92 @@ from sklearn.model_selection import TimeSeriesSplit, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 
-model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True),
-                                ti=dict(n_estimators=150, max_depth=12, max_features=1, oob_score=True)),
-                        svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
-                                 ti=dict(max_iter=1e6, C=0.5, tol=1e-4, gamma='scale', epsilon=1e-3),
-                                 # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
-                                 ),
-                        lgb=dict(ti=dict(
-                            # n_estimators=1000, n_jobs=-1, max_depth=10
-                            # , learning_rate=5e-3
-                            # , colsample_bytree=.2
-                            # , subsample=0.3
-                            # # ,boosting_type='goss'
-                            # n_estimators=500, n_jobs=-1
-                            # , learning_rate=5e-2
-                            # , colsample_bytree=.3
-                            # , subsample=0.8
-                            # , bagging_fraction=0.3
-                            # , bagging_freq=21
-                            # , num_leaves=21
-                            # n_estimators=1000
-                            # # ,max_depth=12
-                            # , learning_rate=5e-2
-                            # , colsample_bytree=.5
-                            # , subsample=0.1
-                            # , bagging_fraction=0.2
-                            # , bagging_freq=5
-                            # , num_leaves=21
-                            n_estimators=100,
-                            learning_rate=5e-2,
-                            max_depth=8,
-                            colsample_bytree=.2,
-                            subsample=.8,
-                            reg_alpha=1e-3,
-                        ),
-                            cr=dict(n_estimators=500, learning_rate=5e-2
-                                    , bagging_fraction=0.1, bagging_freq=5)
-                        )
-                        )
+company_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True),
+                                        ti=dict(n_estimators=150, max_depth=12, max_features=1, oob_score=True)),
+                                svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
+                                         ti=dict(max_iter=1e6, C=0.5, tol=1e-4, gamma='scale', epsilon=1e-3),
+                                         # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
+                                         ),
+                                lgb=dict(ti=dict(
+                                    # n_estimators=1000, n_jobs=-1, max_depth=10
+                                    # , learning_rate=5e-3
+                                    # , colsample_bytree=.2
+                                    # , subsample=0.3
+                                    # # ,boosting_type='goss'
+                                    # n_estimators=500, n_jobs=-1
+                                    # , learning_rate=5e-2
+                                    # , colsample_bytree=.3
+                                    # , subsample=0.8
+                                    # , bagging_fraction=0.3
+                                    # , bagging_freq=21
+                                    # , num_leaves=21
+                                    # n_estimators=1000
+                                    # # ,max_depth=12
+                                    # , learning_rate=5e-2
+                                    # , colsample_bytree=.5
+                                    # , subsample=0.1
+                                    # , bagging_fraction=0.2
+                                    # , bagging_freq=5
+                                    # , num_leaves=21
+                                    num_leaves=21,
+                                    n_estimators=100,
+                                    learning_rate=5e-2,
+                                    max_depth=8,
+                                    colsample_bytree=.2,
+                                    subsample=.8,
+                                    reg_alpha=1e-3,
+                                ),
+                                    cr=dict(n_estimators=500, learning_rate=5e-2
+                                            , bagging_fraction=0.1, bagging_freq=5)
+                                )
+                                )
+
+sector_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True),
+                                       ti=dict(n_estimators=150, max_depth=12, max_features=1, oob_score=True)),
+                               svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
+                                        ti=dict(max_iter=1e6, C=0.5, tol=1e-4, gamma='scale', epsilon=1e-3),
+                                        # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
+                                        ),
+                               lgb=dict(ti=dict(
+                                   # n_estimators=1000, n_jobs=-1, max_depth=10
+                                   # , learning_rate=5e-3
+                                   # , colsample_bytree=.2
+                                   # , subsample=0.3
+                                   # # ,boosting_type='goss'
+                                   # n_estimators=500, n_jobs=-1
+                                   # , learning_rate=5e-2
+                                   # , colsample_bytree=.3
+                                   # , subsample=0.8
+                                   # , bagging_fraction=0.3
+                                   # , bagging_freq=21
+                                   # , num_leaves=21
+                                   # n_estimators=1000
+                                   # # ,max_depth=12
+                                   # , learning_rate=5e-2
+                                   # , colsample_bytree=.5
+                                   # , subsample=0.1
+                                   # , bagging_fraction=0.2
+                                   # , bagging_freq=5
+                                   # , num_leaves=21
+                                   num_leaves=21,
+                                   n_estimators=100,
+                                   learning_rate=5e-2,
+                                   max_depth=8,
+                                   colsample_bytree=.2,
+                                   subsample=.8,
+                                   reg_alpha=1e-3,
+                               ),
+                                   cr=dict(n_estimators=500, learning_rate=5e-2
+                                           , bagging_fraction=0.1, bagging_freq=5)
+                               )
+                               )
 
 
-def get_model(model_type, data_type):
+def get_model(model_type, data_type, prediction_type):
+    if prediction_type == 'company':
+        model_parameters = company_model_parameters
+    else:
+        model_parameters = sector_model_parameters
     model_dict = dict(rf=RandomForestRegressor(**model_parameters['rf'][data_type], random_state=42),
                       svr=Pipeline([
                           ('scale', MinMaxScaler(feature_range=(-1, 1))),
@@ -64,7 +109,7 @@ def get_model(model_type, data_type):
 
 
 def get_fit_regressor(x_train, y_cr_train, x_validation, y_validation, x_test, y_cr_test, data_type='cr',
-                      model_type='rf', context=None,
+                      model_type='rf', prediction_type='company', context=None,
                       columns=None,
                       get_cross_validation_results=True, suffix=None):
     if columns is not None:
@@ -80,7 +125,7 @@ def get_fit_regressor(x_train, y_cr_train, x_validation, y_validation, x_test, y
     print('validation', X_validation.shape, y_validation.shape)
     print('test', X_test.shape, y_test.shape)
 
-    regressor = get_model(model_type=model_type, data_type=data_type)
+    regressor = get_model(model_type=model_type, data_type=data_type, prediction_type=prediction_type)
     score = None
     if get_cross_validation_results:
         if x_validation is None or len(x_validation) == 0:

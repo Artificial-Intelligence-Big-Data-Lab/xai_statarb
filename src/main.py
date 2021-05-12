@@ -13,13 +13,13 @@ from utils import get_prediction_performance_results, add_metrics_information, a
     init_prediction_df
 from walkforward import WalkForward
 
-# DATA_PATH = '../LIME/data/'
 BASE_PATH = '../LIME/'
 
 
 def main(args):
-    constituents = pd.read_csv(BASE_PATH + 'data/constituents.csv')
+    constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
     tickers = constituents['Ticker']
+    sectors = constituents['Sector']
     tickers = tickers[:20]
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
@@ -71,6 +71,7 @@ def main(args):
                                                                           x_test=X_cr_test, y_cr_test=y_cr_test,
                                                                           data_type=args.data_type,
                                                                           model_type=args.model_type,
+                                                                          prediction_type=args.prediction_type,
                                                                           get_cross_validation_results=False)
 
             metric_single_baseline = get_prediction_performance_results(b_y_validation, False)
@@ -91,6 +92,7 @@ def main(args):
                                                                                                       y_cr_test=y_cr_test,
                                                                                                       data_type=args.data_type,
                                                                                                       model_type=args.model_type,
+                                                                                                      prediction_type=args.prediction_type,
                                                                                                       columns=columns,
                                                                                                       get_cross_validation_results=False)
                     metrics_fi_looc = get_prediction_performance_results(looc_y_validation, False)
@@ -137,6 +139,7 @@ def main(args):
                                                                           x_test=X_cr_test, y_cr_test=y_cr_test,
                                                                           data_type=args.data_type,
                                                                           model_type=args.model_type,
+                                                                          prediction_type=args.prediction_type,
                                                                           get_cross_validation_results=False,
                                                                           suffix='_baseline')
             predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test)
@@ -154,6 +157,7 @@ def main(args):
                                                                                                      y_cr_test=y_cr_test,
                                                                                                      data_type=args.data_type,
                                                                                                      model_type=args.model_type,
+                                                                                                     prediction_type=args.prediction_type,
                                                                                                      columns=columns,
                                                                                                      get_cross_validation_results=False,
                                                                                                      suffix="_" + th_label)
@@ -178,79 +182,72 @@ def main(args):
     print('*' * 20, 'DONE', '*' * 20)
     metrics_all.to_csv(all_metrics_output_path, index=False)
     thresholds.to_csv(thresholds_path, index=False)
+    env.cleanup()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        '--method',
-        choices=['mdi', 'sp', 'pi', 'pi_wd'],
-        default='pi',
-        type=str)
+    parser.add_argument('--method',
+                        choices=['mdi', 'sp', 'pi', 'pi_wd'],
+                        default='pi_wd',
+                        type=str)
 
-    parser.add_argument(
-        '--model_type',
-        choices=['rf', 'svr', 'lgb'],
-        default='lgb',
-        type=str)
+    parser.add_argument('--model_type',
+                        choices=['rf', 'svr', 'lgb'],
+                        default='lgb',
+                        type=str)
 
-    parser.add_argument(
-        '--data_type',
-        choices=['cr', 'lr', 'ti'],
-        default='ti',
-        type=str)
+    parser.add_argument('--prediction_type',
+                        choices=['company', 'sector'],
+                        default='company',
+                        type=str)
 
-    parser.add_argument(
-        '--start_date',
-        help='Start date "%Y-%m-%d" format',
-        default='2006-01-01',
-        type=str)
-    parser.add_argument(
-        '--end_date',
-        help='End date "%Y-%m-%d" format',
-        default='2018-01-01',
-        type=str)
-    parser.add_argument(
-        '--no_walks',
-        help='Number of walks',
-        default='2',
-        type=int)
-    parser.add_argument(
-        '--no_features',
-        help='Number of features to remove',
-        default=1,
-        type=int)
-    parser.add_argument(
-        '--train_length',
-        help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
-        default='3Y',
-        type=str)
-    parser.add_argument(
-        '--validation_length',
-        help='Number of validation data expressed in years(Y) or months (M). Default value 1Y',
-        default='1Y',
-        type=str)
-    parser.add_argument(
-        '--test_length',
-        help='Number of test data expressed in years(Y) or months (M). Default value 1Y',
-        default='1Y',
-        type=str)
-    parser.add_argument(
-        '--k',
-        help='StatArb number of companies',
-        default=5,
-        type=int)
-    parser.add_argument(
-        '--num_rounds',
-        help='Number of permutation rounds',
-        default=50,
-        type=int)
-    parser.add_argument(
-        '--test_no',
-        help='Test number to identify the experiments',
-        default=19,
-        type=int)
+    parser.add_argument('--data_type',
+                        choices=['cr', 'lr', 'ti'],
+                        default='ti',
+                        type=str)
+
+    parser.add_argument('--start_date',
+                        help='Start date "%Y-%m-%d" format',
+                        default='2006-01-01',
+                        type=str)
+    parser.add_argument('--end_date',
+                        help='End date "%Y-%m-%d" format',
+                        default='2018-01-01',
+                        type=str)
+    parser.add_argument('--no_walks',
+                        help='Number of walks',
+                        default='2',
+                        type=int)
+    parser.add_argument('--no_features',
+                        help='Number of features to remove',
+                        default=1,
+                        type=int)
+    parser.add_argument('--train_length',
+                        help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
+                        default='3Y',
+                        type=str)
+    parser.add_argument('--validation_length',
+                        help='Number of validation data expressed in years(Y) or months (M). Default value 1Y',
+                        default='1Y',
+                        type=str)
+    parser.add_argument('--test_length',
+                        help='Number of test data expressed in years(Y) or months (M). Default value 1Y',
+                        default='1Y',
+                        type=str)
+    parser.add_argument('--k',
+                        help='StatArb number of companies',
+                        default=5,
+                        type=int)
+    parser.add_argument('--num_rounds',
+                        help='Number of permutation rounds',
+                        default=50,
+                        type=int)
+    parser.add_argument('--test_no',
+                        help='Test number to identify the experiments',
+                        default=22,
+                        type=int)
     args_in = parser.parse_args()
 
     main(args_in)

@@ -142,7 +142,7 @@ class CompanyFeatures:
             data_df.to_csv("{0}{1}.csv".format(folder, ticker), index=False)
 
         if 'Date' in data_df.columns:
-            data_df.set_index('Date', inplace=True)
+            data_df.set_index(['Date', 'ticker'], inplace=True)
         X = data_df[[c for c in data_df.columns if c not in ['Date', 'ticker', 'label']]]
         y = data_df[['label']]
         return X, y
