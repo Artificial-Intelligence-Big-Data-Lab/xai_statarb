@@ -25,7 +25,8 @@ class Environment:
         if args.prediction_type == 'company':
             self.__file_names = [ticker + '.csv' if '.csv' not in ticker else ticker for ticker in tickers]
         else:
-            self.__file_names = [sector + 'csv' if '.csv' not in sector else sector for sector in sectors]
+            self.__file_names = [sector + '.csv' if '.csv' not in sector else sector for sector in
+                                 set(sectors) | set(tickers)]
 
         self.__setup_folders(self.__base_folder + '/{0}/'.format(args.test_no))
         self.__walk = None

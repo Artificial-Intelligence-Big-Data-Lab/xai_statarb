@@ -195,12 +195,12 @@ if __name__ == "__main__":
 
     parser.add_argument('--model_type',
                         choices=['rf', 'svr', 'lgb'],
-                        default='lgb',
+                        default='svr',
                         type=str)
 
     parser.add_argument('--prediction_type',
                         choices=['company', 'sector'],
-                        default='company',
+                        default='sector',
                         type=str)
 
     parser.add_argument('--data_type',
@@ -246,7 +246,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=24,
+                        default=26,
                         type=int)
     args_in = parser.parse_args()
 

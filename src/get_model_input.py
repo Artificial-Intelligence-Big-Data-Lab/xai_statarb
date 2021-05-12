@@ -12,7 +12,7 @@ def disparity(close, n_pmav):
     return pd.Series(close * 100 / close.rolling(n_pmav).mean(), name='disp_{0}'.format(n_pmav))
 
 
-def get_cumulative_returns(data: pd.DataFrame, ticker):
+def get_cumulative_returns(data: pd.DataFrame):
     indices = [1, 2, 3, 4, 5, 21, 63, 126, 252]
     clr_df = pd.DataFrame()
     for i in indices:
@@ -25,7 +25,7 @@ def get_cumulative_returns(data: pd.DataFrame, ticker):
     return clr_df
 
 
-def get_technical_indicators(data: pd.DataFrame, ticker):
+def get_technical_indicators(data: pd.DataFrame):
     wr = ta.momentum.WilliamsRIndicator(data['High'], data['Low'], data['Close'], lbp=14)
     roc = ta.momentum.roc(data['Close'], window=12)
     rsi = ta.momentum.rsi(data['Close'], window=14)
@@ -43,13 +43,12 @@ def get_technical_indicators(data: pd.DataFrame, ticker):
     return ti_df
 
 
-def get_target(data_df: pd.DataFrame, ticker):
+def get_target(data_df: pd.DataFrame):
     """
 
     Parameters
     ----------
     data_df: OHCLV dataframe from source
-    ticker : string
     """
     label_df = pd.DataFrame(data=(data_df['Close'] - data_df['Open']) / data_df['Open'], columns=['label'])
     label_df.reset_index(inplace=True)
@@ -65,7 +64,7 @@ def get_data_from_file(ticker: str, folder, date_start, date_end):
         data_df['Date'] = pd.to_datetime(data_df['Date'])
         data_df.set_index('Date', inplace=True)
         data_df = data_df[date_start:date_end]
-
+        data_df.reset_index(inplace=True)
     return data_df
 
 
@@ -87,13 +86,11 @@ class CompanyFeatures:
                 row = pd.DataFrame([self.__constituents.iloc[idx]])
                 yield row['Ticker'].values[0], row
         else:
-            for group in self.__constituents.groupby(by=['Sector'], as_index=False):
-                yield group['Sector'].values[0], group
+            for sector, group in self.__constituents.groupby(by=['Sector'], as_index=False):
+                yield sector, group
 
     def get_features(self, constituents_batch, walk: Walk):
 
-        idx = pd.IndexSlice
-        # data.loc[idx[ticker, :], :].droplevel('ticker', axis=0)
         x_train, y_train = pd.DataFrame(), pd.DataFrame()
         x_validation, y_validation = pd.DataFrame(), pd.DataFrame()
         x_test, y_test = pd.DataFrame(), pd.DataFrame()
@@ -139,13 +136,13 @@ class CompanyFeatures:
         if data is None or len(data) == 0:
             return pd.DataFrame()
         if self.__feature_type == 'cr':
-            feature_df = get_cumulative_returns(data, ticker)
+            feature_df = get_cumulative_returns(data)
         elif self.__feature_type == 'lr':
-            feature_df = get_cumulative_returns(data, ticker)
+            feature_df = get_cumulative_returns(data)
         else:
-            feature_df = get_technical_indicators(data, ticker)
+            feature_df = get_technical_indicators(data)
 
-        label_df = get_target(data, ticker)
+        label_df = get_target(data)
         df1 = pd.concat([feature_df, label_df], axis=1)
         df1.dropna(inplace=True)
         df1.loc[:, 'ticker'] = ticker
