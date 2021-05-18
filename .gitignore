@@ -133,6 +133,7 @@ dmypy.json
 LIME/data/LOOC_*.csv
 LIME/StatisticalArbitrage/*
 LIME/**/*.zip
-*.xlsx
-/LIME/test/*
-
+LIME/**/*.xlsx
+LIME/test/*
+LIME/**/
+!LIME/data/*
