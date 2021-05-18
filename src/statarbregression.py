@@ -115,7 +115,8 @@ def compute_mdd(returns):
 
 class StatArbRegression:
     def __init__(self, validation: pd.DataFrame, test: pd.DataFrame, predicted_label='predicted', label='label', k=5,
-                 folder=None):
+                 folder=None, prediction_type='company'):
+        self.prediction_type = prediction_type
         self.__test = test.copy()
         self.__validation = validation.copy()
         if folder is not None and test.empty:
@@ -124,16 +125,22 @@ class StatArbRegression:
         self.__k = k
         self.predicted_label = predicted_label
         self.label = label
-        self.__columns = np.append(['ticker', self.label],
-                                   [value for value in self.__test.columns if self.predicted_label in value])
+        if prediction_type == 'company':
+            self.__columns = np.append([self.label],
+                                       [value for value in self.__test.columns if self.predicted_label in value])
+        else:
+            self.__columns = np.append(['sector', self.label],
+                                       [value for value in self.__test.columns if self.predicted_label in value])
         self.__methods = [value.replace(self.predicted_label, '').replace("_", "") for value in self.__test.columns if
                           self.predicted_label in value]
 
     def compute_long_short(self, label, ground_truth=False):
         active_range = set(range(0, self.__k, 1))
 
-        long_pred = self.__test.sort_values([label], ascending=False).groupby(['Date']).nth(active_range)
-        short_pred = self.__test.sort_values([label], ascending=True).groupby(['Date']).nth(active_range)
+        test_df = self.__test.reset_index(level='ticker')
+
+        long_pred = test_df.sort_values([label], ascending=False).groupby(['Date']).nth(active_range)
+        short_pred = test_df.sort_values([label], ascending=True).groupby(['Date']).nth(active_range)
 
         long_bydate_pred = long_pred.groupby(['Date'])[self.label].agg([('value', 'sum'), ('no', 'count')])
         short_bydate_pred = short_pred.groupby(['Date'])[self.label].agg([('value', 'sum'), ('no', 'count')])
@@ -144,8 +151,11 @@ class StatArbRegression:
         valore_giornaliero_pred = (- short_bydate_pred['value'] + long_bydate_pred['value']) / (
                 long_bydate_pred['no'] + short_bydate_pred['no']) * 100
 
-        return valore_giornaliero_pred, long_pred[['ticker', self.label, label]], short_pred[
-            ['ticker', self.label, label]]
+        if 'sector' in long_pred.columns:
+            return valore_giornaliero_pred, long_pred[['ticker', 'sector', self.label, label]], short_pred[
+                ['ticker', 'sector', self.label, label]]
+        else:
+            return valore_giornaliero_pred, long_pred[['ticker', self.label, label]], short_pred[['ticker', self.label, label]]
 
     def __generate_signals(self, **kwargs):
 
@@ -164,10 +174,14 @@ class StatArbRegression:
             long_bydate_pred[self.label + '_' + column] = daily_long[self.label].values
             long_bydate_pred[column] = daily_long[column].values
             long_bydate_pred[column + '_ticker'] = daily_long['ticker'].values
+            if 'sector' in daily_long.columns:
+                long_bydate_pred[column + '_sector'] = daily_long['sector'].values
 
             short_bydate_pred[column + '_ticker'] = daily_short['ticker'].values
             short_bydate_pred[self.label + '_' + column] = daily_short[self.label].values
             short_bydate_pred[column] = daily_short[column].values
+            if 'sector' in daily_short.columns:
+                short_bydate_pred[column + '_sector'] = daily_short['sector'].values
 
         print_info('shapes for expected and predicted daily returns {0} {1}'.format(str(valore_giornaliero_pred.shape),
                                                                                     str(valore_giornaliero_exp.shape)),

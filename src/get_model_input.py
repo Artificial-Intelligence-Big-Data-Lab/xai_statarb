@@ -15,6 +15,8 @@ def disparity(close, n_pmav):
 def get_cumulative_returns(data: pd.DataFrame):
     indices = [1, 2, 3, 4, 5, 21, 63, 126, 252]
     clr_df = pd.DataFrame()
+    if len(data) < 252:
+        return clr_df
     for i in indices:
         columns_name = 'Returns_{0}'.format(i)
         dummy_ret = pd.DataFrame((data['Close'].shift(1) - data['Open'].shift(i)) / data['Open'].shift(i),
@@ -26,6 +28,8 @@ def get_cumulative_returns(data: pd.DataFrame):
 
 
 def get_technical_indicators(data: pd.DataFrame):
+    if len(data) < 252:
+        return pd.DataFrame()
     wr = ta.momentum.WilliamsRIndicator(data['High'], data['Low'], data['Close'], lbp=14)
     roc = ta.momentum.roc(data['Close'], window=12)
     rsi = ta.momentum.rsi(data['Close'], window=14)
@@ -96,8 +100,7 @@ class CompanyFeatures:
         x_test, y_test = pd.DataFrame(), pd.DataFrame()
 
         for ticker in constituents_batch['Ticker'].values:
-            x_df, y_df = self.__get_data_for_ticker(ticker, folder=self.folder, date_start=walk.train.start,
-                                                    date_end=walk.test.end)
+            x_df, y_df = self.__get_data_for_ticker(ticker, folder=self.folder, date_start=walk.train.start, date_end=walk.test.end)
 
             if x_df.empty or y_df.empty:
                 continue
@@ -109,8 +112,7 @@ class CompanyFeatures:
             X_cr_train = X_cr_train.reset_index().set_index(['Date', 'ticker'])
             y_cr_train = y_cr_train.reset_index().set_index(['Date', 'ticker'])
 
-            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[
-                                                                                      validation_start:start_test]
+            X_cr_validation, y_cr_validation = x_df.loc[validation_start:start_test], y_df.loc[validation_start:start_test]
             X_cr_validation = X_cr_validation.reset_index().set_index(['Date', 'ticker'])
             y_cr_validation = y_cr_validation.reset_index().set_index(['Date', 'ticker'])
 
@@ -143,6 +145,8 @@ class CompanyFeatures:
             feature_df = get_technical_indicators(data)
 
         label_df = get_target(data)
+        if feature_df.empty or label_df.empty:
+            return pd.DataFrame()
         df1 = pd.concat([feature_df, label_df], axis=1)
         df1.dropna(inplace=True)
         df1.loc[:, 'ticker'] = ticker

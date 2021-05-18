@@ -41,48 +41,45 @@ company_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_le
                                     subsample=.8,
                                     reg_alpha=1e-3,
                                 ),
-                                    cr=dict(n_estimators=500, learning_rate=5e-2
-                                            , bagging_fraction=0.1, bagging_freq=5)
+                                    cr=dict(
+                                        # n_estimators=500, learning_rate=5e-2
+                                        # , bagging_fraction=0.1, bagging_freq=5,
+
+                                        bagging_fraction=.65, num_leaves=252, n_estimators=220, learning_rate=4e-2,
+                                        max_depth=7, reg_alpha=9e-4
+                                    )
                                 )
                                 )
 
-sector_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True),
-                                       ti=dict(n_estimators=150, max_depth=12, max_features=1, oob_score=True)),
+sector_model_parameters = dict(rf=dict(cr=dict(n_estimators=300, bootstrap=True, max_samples=0.5, max_features='sqrt'),
+                                       ti=dict(n_estimators=100, max_depth=40, bootstrap=True, max_samples=0.7, max_features='sqrt')),
                                svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
-                                        ti=dict(max_iter=1e6, C=0.5, tol=1e-4, gamma='scale', epsilon=1e-3),
+                                        ti=dict(max_iter=1e6, C=2, tol=1e-5, epsilon=0.025, gamma='scale'),
                                         # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
                                         ),
-                               lgb=dict(ti=dict(
-                                   # n_estimators=1000, n_jobs=-1, max_depth=10
-                                   # , learning_rate=5e-3
-                                   # , colsample_bytree=.2
-                                   # , subsample=0.3
-                                   # # ,boosting_type='goss'
-                                   # n_estimators=500, n_jobs=-1
-                                   # , learning_rate=5e-2
-                                   # , colsample_bytree=.3
-                                   # , subsample=0.8
-                                   # , bagging_fraction=0.3
-                                   # , bagging_freq=21
-                                   # , num_leaves=21
-                                   # n_estimators=1000
-                                   # # ,max_depth=12
-                                   # , learning_rate=5e-2
-                                   # , colsample_bytree=.5
-                                   # , subsample=0.1
-                                   # , bagging_fraction=0.2
-                                   # , bagging_freq=5
-                                   # , num_leaves=21
-                                   num_leaves=21,
-                                   n_estimators=100,
-                                   learning_rate=5e-2,
-                                   max_depth=8,
-                                   colsample_bytree=.2,
-                                   subsample=.8,
-                                   reg_alpha=1e-3,
-                               ),
-                                   cr=dict(n_estimators=500, learning_rate=5e-2
-                                           , bagging_fraction=0.1, bagging_freq=5)
+                               lgb=dict(
+                                   ti=dict(
+                                       # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
+                                       # colsample_bytree=.7, subsample=.2, objective='fair'
+                                       # n_estimators=200, num_leaves=63, colsample_bytree=1,
+                                       # learning_rate=0.05, subsample=0.3, max_depth=8,
+                                       # objective='fair'
+                                       # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
+                                       # colsample_bytree=.7, subsample=.2, objective='fair'
+                                       # n_estimators=200, num_leaves=63, colsample_bytree=1,
+                                       # learning_rate=0.05, subsample=0.3, max_depth=8,
+                                       # objective='fair'
+                                       # n_estimators=150, num_leaves=63, colsample_bytree=0.4,
+                                       # learning_rate=0.05, subsample=0.3,
+                                       # objective='fair'
+                                       n_estimators=100, num_leaves=100, colsample_bytree=0.8, max_depth=15,
+                                       learning_rate=0.03, subsample=0.8,
+
+                                   ),
+                                   cr=dict(
+                                       num_leaves=230, n_estimators=250, learning_rate=67e-3,
+                                       max_depth=12, colsample_bytree=.9, objective='fair'
+                                   )
                                )
                                )
 
@@ -92,7 +89,10 @@ def get_model(model_type, data_type, prediction_type):
         model_parameters = company_model_parameters
     else:
         model_parameters = sector_model_parameters
-    model_dict = dict(rf=RandomForestRegressor(**model_parameters['rf'][data_type], random_state=42),
+    model_dict = dict(rf=Pipeline([
+                            ('scale', MinMaxScaler(feature_range=(-1, 1))),
+                            ('regressor', RandomForestRegressor(**model_parameters['rf'][data_type], random_state=42, n_jobs=-1))
+                            ]),
                       svr=Pipeline([
                           ('scale', MinMaxScaler(feature_range=(-1, 1))),
                           ('regressor', svm.SVR(**model_parameters['svr'][data_type]))

@@ -142,8 +142,8 @@ def main(args):
                                                                           prediction_type=args.prediction_type,
                                                                           get_cross_validation_results=False,
                                                                           suffix='_baseline')
-            predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test)
-            validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation)
+            predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test, args.prediction_type)
+            validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation, args.prediction_type)
 
             for th_label in thresholds_labels:
                 columns = get_columns(dfs[th_label], ticker, method=th_label, columns=X_cr_train.columns)
@@ -174,8 +174,8 @@ def main(args):
         metric_saver.save(env.output_folder)
 
         print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
-        strategy1 = StatArbRegression(validation=validation_total_df, test=total_df, predicted_label='predicted',
-                                      k=args.k)
+        strategy1 = StatArbRegression(validation=validation_total_df, test=total_df, predicted_label='predicted', k=args.k,
+                                      prediction_type=args.prediction_type)
         strategy1.generate_signals(output_folder=env.output_folder)
         strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--method',
                         choices=['mdi', 'sp', 'pi', 'pi_wd'],
-                        default='pi_wd',
+                        default='pi',
                         type=str)
 
     parser.add_argument('--model_type',
@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--start_date',
                         help='Start date "%Y-%m-%d" format',
-                        default='2006-01-01',
+                        default='2008-01-01',
                         type=str)
     parser.add_argument('--end_date',
                         help='End date "%Y-%m-%d" format',
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                         type=str)
     parser.add_argument('--no_walks',
                         help='Number of walks',
-                        default='2',
+                        default='3',
                         type=int)
     parser.add_argument('--no_features',
                         help='Number of features to remove',
@@ -226,15 +226,15 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--train_length',
                         help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
-                        default='3Y',
+                        default='1Y',
                         type=str)
     parser.add_argument('--validation_length',
                         help='Number of validation data expressed in years(Y) or months (M). Default value 1Y',
-                        default='1Y',
+                        default='6M',
                         type=str)
     parser.add_argument('--test_length',
                         help='Number of test data expressed in years(Y) or months (M). Default value 1Y',
-                        default='1Y',
+                        default='6M',
                         type=str)
     parser.add_argument('--k',
                         help='StatArb number of companies',
@@ -246,7 +246,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=26,
+                        default=39,
                         type=int)
     args_in = parser.parse_args()
 
