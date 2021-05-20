@@ -1,12 +1,6 @@
 from feature_selection import RFFeatureImportanceSelector, LIMEFeatureImportanceSelector, PISelector, \
     WassersteinFeatureImportanceSelector
 
-threshold_columns = {'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best',
-                     'threshold_worst', 'error_worst', 'no_improvements_worst', 'ratio_worst',
-                     'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'
-                     }
-thresholds_labels = ['best', 'worst', 'running']
-
 
 def get_methods(args):
     return {

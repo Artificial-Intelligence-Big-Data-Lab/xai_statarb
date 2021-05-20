@@ -1,16 +1,10 @@
 import numpy as np
 import pandas as pd
 
-
-def get_columns(df: pd.DataFrame, ticker, method, columns):
-    if df.empty:
-        return columns
-
-    removed_column = df[(df['ticker'] == ticker) & (df['method'] == method)]['removed_column'].values[:1]
-    if removed_column is None:
-        return columns
-    else:
-        return set(columns) - set(removed_column)
+threshold_columns = {'walk', 'threshold_best', 'error_best', 'no_improvements_best', 'ratio_best',
+                     'threshold_worst', 'error_worst', 'no_improvements_worst', 'ratio_worst',
+                     'threshold_running', 'error_running', 'no_improvements_running', 'ratio_running'}
+thresholds_labels = ['best', 'worst', 'running']
 
 
 def get_is_lower(x, th):
@@ -37,14 +31,15 @@ def get_metrics(metrics, thresholds, label='worst', error_label='MSE'):
 
     if label != 'running':
         worst = label == 'worst'
-        indexes = metrics.sort_values(['walk', 'ticker', 'removed_FI'], ascending=[True, True, not worst]) \
+        indexes = metrics.sort_values(['walk', 'ticker', 'removed_FI'], ascending=[True, True, worst]) \
             .groupby(by=['walk', 'ticker'], as_index=False).nth(0)[['walk', 'ticker', 'removed_FI', 'removed_column']]
         indexes.dropna(inplace=True)
         test_df = metrics[metrics.index.isin(indexes.index)]
     else:
         test_df = metrics.copy()
         test_df['is_lower'] = metrics.apply(lambda x: get_is_lower(x, th), axis=1)
-        test_df = test_df[test_df['is_lower']].groupby(by=['walk', 'ticker'], as_index=False).nth(0)
+        test_df = test_df[test_df['is_lower']].sort_values(['walk', 'ticker', 'removed_FI'], ascending=[True, True, False]) \
+            .groupby(by=['walk', 'ticker'], as_index=False).nth(0)
         all_companies = metrics.groupby(by=['walk', 'ticker'], as_index=False).nth(0)
         df3 = all_companies.merge(test_df, left_on=['walk', 'ticker'], right_on=['walk', 'ticker'], how='left',
                                   suffixes=('_all', '_selected'))
@@ -144,5 +139,26 @@ def get_optimal_threshold(metrics_all, walk, labels):
 
 
 def get_optimal_threshold_strategy(metrics_df):
-    th_index = np.argmax(metrics_df['error_diff_avg'].values)
+    th_index = np.nanargmax(metrics_df['error_diff_avg'].values)
     return th_index
+
+
+class Threshold:
+    def __init__(self, thresholds_path=None):
+        self.__thresholds = pd.DataFrame(columns=threshold_columns)
+        if thresholds_path is not None:
+            self.__thresholds_path = thresholds_path + 'LOOC_thresholds.csv'
+        else:
+            self.__thresholds_path = None
+
+    def get_thresholds(self, metrics_all: pd.DataFrame, idx: int):
+        print('*' * 10 + 'START computing thresholds' + '*' * 10)
+        threshold_row = get_optimal_threshold(metrics_all[metrics_all.walk == idx], idx, thresholds_labels)
+        self.__thresholds = self.__thresholds.append(threshold_row, ignore_index=True)
+        if self.__thresholds_path is not None:
+            self.__thresholds.to_csv(self.__thresholds_path, index=False)
+        print('*' * 10 + 'END computing thresholds' + '*' * 10)
+
+        dfs = dict([(th_label, (get_metrics(metrics_all[metrics_all.walk == idx], self.__thresholds, th_label))) for th_label
+                    in thresholds_labels])
+        return dfs

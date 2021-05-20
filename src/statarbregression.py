@@ -137,7 +137,12 @@ class StatArbRegression:
     def compute_long_short(self, label, ground_truth=False):
         active_range = set(range(0, self.__k, 1))
 
-        test_df = self.__test.reset_index(level='ticker')
+        test_df = self.__test
+
+        if 'ticker' in test_df.columns:
+            test_df.drop(['ticker'], axis='columns', inplace=True)
+
+        test_df = test_df.reset_index(level='ticker')
 
         long_pred = test_df.sort_values([label], ascending=False).groupby(['Date']).nth(active_range)
         short_pred = test_df.sort_values([label], ascending=True).groupby(['Date']).nth(active_range)

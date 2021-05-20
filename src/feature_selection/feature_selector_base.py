@@ -13,7 +13,7 @@ class BaseFeatureSelector(ABC):
         if min_row.empty:
             return min_row, all_columns, "No column selected"
         column = min_row.index.values
-        columns = set(all_columns) - set(column)
+        columns = [col for col in all_columns if col not in [column]]
         if len(column) == len(all_columns):
             return pd.DataFrame(), all_columns, "Selecting all columns"
         return min_row, columns, None
@@ -26,7 +26,7 @@ class BaseFeatureSelector(ABC):
             error_msg = "No column selected"
         idx = 0
         for column, row in min_row.iterrows():
-            columns = set(all_columns) - set([column])
+            columns = [col for col in all_columns if col not in [column]]
             return_row = pd.Series(row)
             return_row["index"] = column
             yield idx, return_row, columns, error_msg

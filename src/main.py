@@ -4,7 +4,7 @@ import random
 import time
 
 from config import *
-from feature_selection_threshold import *
+from feature_selection_threshold import Threshold, thresholds_labels
 from get_model_input import *
 from metrics import MetricsSaver, SelectedColumns
 from models import get_fit_regressor
@@ -18,7 +18,8 @@ BASE_PATH = '../LIME/'
 
 def main(args):
     constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
-    constituents = constituents[:20]
+    # constituents = constituents.groupby(by=['Sector']).nth(set(range(0, 10, 1))).reset_index()
+    constituents = constituents[constituents['Sector'].isin(['Communication Services', 'Energy'])]
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
     #     '0001.HK', '0003.HK']
@@ -26,8 +27,7 @@ def main(args):
     random.seed(30)
 
     all_metrics_output_path = BASE_PATH + '{0}/LOOC_metrics_cr_all.csv'.format(args.test_no)
-    thresholds_path = BASE_PATH + '{0}/LOOC_thresholds.csv'.format(args.test_no)
-    thresholds = pd.DataFrame(columns=threshold_columns)
+
     env = Environment(tickers=constituents['Ticker'], sectors=constituents['Sector'].unique(), args=args)
 
     wf = WalkForward(datetime.datetime.strptime(args.start_date, '%Y-%m-%d'),
@@ -41,8 +41,9 @@ def main(args):
     metrics_all = pd.DataFrame()
     company_feature_builder = CompanyFeatures(constituents=constituents, folder_output=env.test_folder,
                                               feature_type=args.data_type, prediction_type=args.prediction_type)
-    chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no))
+    chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no), removed_feature_no=args.no_features)
     metric_saver = MetricsSaver(labels=thresholds_labels)
+    threshold_strategy = Threshold(thresholds_path=BASE_PATH + '{0}/'.format(args.test_no))
 
     for idx, walk in wf.get_walks():
 
@@ -101,9 +102,9 @@ def main(args):
                     merged_series = metrics_baseline.copy()
                     merged_series = add_metrics_information(metrics_fi_looc, context, score_looc,
                                                             importance_series=importance, copy_to=merged_series)
-                    metrics_fi_looc, missing_col_dict = add_context_information(metrics_fi_looc, context, score_looc,
-                                                                                importance_series=importance,
-                                                                                baseline_loss=transformer.baseline_loss)
+                    _, _ = add_context_information(metrics_fi_looc, context, score_looc,
+                                                   importance_series=importance,
+                                                   baseline_loss=transformer.baseline_loss)
 
                     metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
                     metrics_all.to_csv(all_metrics_output_path, index=False)
@@ -111,14 +112,7 @@ def main(args):
             end_time = time.perf_counter()
             print_info('{0} took {1} s'.format(ticker, end_time - start_time))
 
-        print_info('*' * 10 + 'START computing thresholds' + '*' * 10)
-        threshold_row = get_optimal_threshold(metrics_all, idx, thresholds_labels)
-        thresholds = thresholds.append(threshold_row, ignore_index=True)
-        thresholds.to_csv(thresholds_path, index=False)
-        print_info('*' * 10 + 'END computing thresholds' + '*' * 10)
-
-        dfs = dict([(th_label, (get_metrics(metrics_all[metrics_all.walk == idx], thresholds, th_label))) for th_label
-                    in thresholds_labels])
+        dfs = threshold_strategy.get_thresholds(metrics_all, walk.train.idx)
 
         print_info('*' * 10 + 'START forecasting using optimal threshold' + '*' * 10)
         total_df = pd.DataFrame()
@@ -127,8 +121,7 @@ def main(args):
         for ticker, constituents_batch in company_feature_builder.get_entities():
 
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
-                constituents_batch=constituents_batch,
-                walk=walk)
+                constituents_batch=constituents_batch, walk=walk)
 
             if len(X_cr_train) == 0 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
@@ -146,8 +139,8 @@ def main(args):
             validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation, args.prediction_type)
 
             for th_label in thresholds_labels:
-                columns = get_columns(dfs[th_label], ticker, method=th_label, columns=X_cr_train.columns)
-                chosen_columns.set_chosen_features(ticker=ticker, walk=walk, method=th_label, columns=columns)
+                columns = chosen_columns.get_columns(dfs[th_label], ticker, method=th_label)
+                chosen_columns.set_chosen_features(ticker=ticker, walk_idx=walk.train.idx, method=th_label, columns=columns)
 
                 looc_fi_regressor, looc_y_validation, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train,
                                                                                                      y_cr_train,
@@ -181,7 +174,6 @@ def main(args):
 
     print('*' * 20, 'DONE', '*' * 20)
     metrics_all.to_csv(all_metrics_output_path, index=False)
-    thresholds.to_csv(thresholds_path, index=False)
     env.cleanup()
 
 
@@ -195,7 +187,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--model_type',
                         choices=['rf', 'svr', 'lgb'],
-                        default='svr',
+                        default='rf',
                         type=str)
 
     parser.add_argument('--prediction_type',
@@ -205,12 +197,12 @@ if __name__ == "__main__":
 
     parser.add_argument('--data_type',
                         choices=['cr', 'lr', 'ti'],
-                        default='ti',
+                        default='cr',
                         type=str)
 
     parser.add_argument('--start_date',
                         help='Start date "%Y-%m-%d" format',
-                        default='2008-01-01',
+                        default='2011-01-01',
                         type=str)
     parser.add_argument('--end_date',
                         help='End date "%Y-%m-%d" format',
@@ -218,7 +210,7 @@ if __name__ == "__main__":
                         type=str)
     parser.add_argument('--no_walks',
                         help='Number of walks',
-                        default='3',
+                        default='2',
                         type=int)
     parser.add_argument('--no_features',
                         help='Number of features to remove',
@@ -226,15 +218,15 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--train_length',
                         help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
-                        default='1Y',
+                        default='3Y',
                         type=str)
     parser.add_argument('--validation_length',
                         help='Number of validation data expressed in years(Y) or months (M). Default value 1Y',
-                        default='6M',
+                        default='1Y',
                         type=str)
     parser.add_argument('--test_length',
                         help='Number of test data expressed in years(Y) or months (M). Default value 1Y',
-                        default='6M',
+                        default='1Y',
                         type=str)
     parser.add_argument('--k',
                         help='StatArb number of companies',
@@ -246,7 +238,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=39,
+                        default=44,
                         type=int)
     args_in = parser.parse_args()
 

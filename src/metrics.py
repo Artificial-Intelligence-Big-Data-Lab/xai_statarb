@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 
-from walkforward import Walk
-
 
 def rmse(y, p):
     r"""Root Mean Square Error.
@@ -89,11 +87,12 @@ class MetricsSaver:
 
 class SelectedColumns:
 
-    def __init__(self, save_path):
+    def __init__(self, save_path, removed_feature_no=1):
         self.__file = save_path + 'LOOC_selected_columns.csv'
         self.__feature_columns = None
         self.__all_columns = ['ticker', 'walk', 'method']
         self.__df = None
+        self.__removed_feature_no = removed_feature_no
 
     @property
     def all_columns(self):
@@ -111,12 +110,23 @@ class SelectedColumns:
         self.__df[self.__all_columns].to_csv(self.__file, index=False)
         return self.__df
 
-    def set_chosen_features(self, ticker, walk: Walk, method: str, columns: []):
+    def set_chosen_features(self, ticker, walk_idx: int, method: str, columns: []):
         if not columns:
             raise ValueError('At least one column must be selected')
         if self.__feature_columns is None:
             raise ValueError('The feature names is not set')
-        data_row = dict(ticker=ticker, walk=walk.train.idx, method=method)
+        data_row = dict(ticker=ticker, walk=walk_idx, method=method)
         data_row.update(dict([(col, False) for col in self.__feature_columns]))
         data_row.update(dict([(col, True) for col in columns]))
         self.__df = self.__df.append(data_row, ignore_index=True)
+
+    def get_columns(self, df: pd.DataFrame, ticker, method):
+        if df.empty:
+            return self.__feature_columns
+
+        removed_column = df[(df['ticker'] == ticker) & (df['method'] == method)]['removed_column'].values[:self.__removed_feature_no]
+        if removed_column is None:
+            return self.__feature_columns
+        else:
+            chosen_columns = [col for col in self.__feature_columns if col not in removed_column]
+            return chosen_columns
