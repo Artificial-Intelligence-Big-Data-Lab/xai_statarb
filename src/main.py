@@ -19,7 +19,8 @@ BASE_PATH = '../LIME/'
 def main(args):
     constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
     # constituents = constituents.groupby(by=['Sector']).nth(set(range(0, 10, 1))).reset_index()
-    constituents = constituents[constituents['Sector'].isin(['Communication Services', 'Energy'])]
+    # constituents = constituents[constituents['Sector'].isin(['Communication Services'])]
+    constituents = constituents.iloc[:20]
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
     #     '0001.HK', '0003.HK']
@@ -192,7 +193,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--prediction_type',
                         choices=['company', 'sector'],
-                        default='sector',
+                        default='company',
                         type=str)
 
     parser.add_argument('--data_type',
@@ -238,7 +239,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=44,
+                        default=45,
                         type=int)
     args_in = parser.parse_args()
 

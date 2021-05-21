@@ -131,6 +131,12 @@ class CompanyFeatures:
             print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
             print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
 
+        x_train, y_train, x_validation, y_validation, x_test, y_test = self.__sanitize_data(x_train, y_train, x_validation, y_validation,
+                                                                                            x_test, y_test)
+        print('{0} train {1}'.format(x_train.index.min(), x_train.index.max()))
+        print('{0} test {1}'.format(x_validation.index.min(), x_validation.index.max()))
+        print('{0} test {1}'.format(x_test.index.min(), x_test.index.max()))
+
         return x_train, y_train, x_validation, y_validation, x_test, y_test
 
     def __get_data_online(self, ticker: str, date_start, date_end):
@@ -179,3 +185,41 @@ class CompanyFeatures:
         X = data_df[[c for c in data_df.columns if c not in ['Date', 'label']]]
         y = data_df[['ticker', 'label']]
         return X, y
+
+    @staticmethod
+    def __sanitize_data(x_train, y_train, x_validation, y_validation, x_test, y_test):
+        tickers_train = x_train.index.get_level_values('ticker').unique()
+        tickers_validation = x_validation.index.get_level_values('ticker').unique()
+        tickers_test = x_test.index.get_level_values('ticker').unique()
+        interset = set(tickers_train).intersection(tickers_validation).intersection(tickers_test)
+
+        x_train.drop(set(tickers_train).difference(interset), level='ticker', inplace=True)
+        y_train.drop(set(tickers_train).difference(interset), level='ticker', inplace=True)
+
+        x_validation.drop(set(tickers_validation).difference(interset), level='ticker', inplace=True)
+        y_validation.drop(set(tickers_validation).difference(interset), level='ticker', inplace=True)
+
+        x_test.drop(set(tickers_test).difference(interset), level='ticker', inplace=True)
+        y_test.drop(set(tickers_test).difference(interset), level='ticker', inplace=True)
+
+        x = x_train.groupby(level=['ticker']).size()
+        to_discard_train = x[x < x.max()].index.values
+
+        x = x_validation.groupby(level=['ticker']).size()
+        to_discard_validation = x[x < x.max()].index.values
+
+        x = x_test.groupby(level=['ticker']).size()
+        to_discard_test = x[x < x.max()].index.values
+
+        to_discard = set(to_discard_train) | set(to_discard_validation) | set(to_discard_test)
+
+        x_train.drop(to_discard, level='ticker', inplace=True)
+        y_train.drop(to_discard, level='ticker', inplace=True)
+
+        x_validation.drop(to_discard, level='ticker', inplace=True)
+        y_validation.drop(to_discard, level='ticker', inplace=True)
+
+        x_test.drop(to_discard, level='ticker', inplace=True)
+        y_test.drop(to_discard, level='ticker', inplace=True)
+
+        return x_train, y_train, x_validation, y_validation, x_test, y_test

@@ -122,25 +122,30 @@ def get_optimal_threshold(metrics_all, walk, labels):
     idx_worst = get_optimal_threshold_strategy(df_worst)
     idx_best = get_optimal_threshold_strategy(df_best)
     idx_running = get_optimal_threshold_strategy(df_running)
-    return {'walk': walk, 'threshold_best': df_best.iloc[idx_best]['threshold']
-        , 'error_best': df_best.iloc[idx_best]['error_diff_avg']
-        , 'no_improvements_best': df_best.iloc[idx_best]['positive_count']
-        , 'ratio_best': df_best.iloc[idx_best]['positive_count'] / df_best.iloc[idx_best]['removed_count']
-        , 'threshold_worst': df_worst.iloc[idx_worst]['threshold']
-        , 'error_worst': df_worst.iloc[idx_worst]['error_diff_avg']
-        , 'no_improvements_worst': df_worst.iloc[idx_best]['positive_count']
-        , 'ratio_worst': df_worst.iloc[idx_best]['positive_count'] / df_worst.iloc[idx_best]['removed_count']
-        , 'threshold_running': df_running.iloc[idx_running]['threshold']
-        , 'error_running': df_running.iloc[idx_running]['error_diff_avg']
-        , 'no_improvements_running': df_running.iloc[idx_running]['positive_count']
-        , 'ratio_running': df_running.iloc[idx_running]['positive_count'] / df_running.iloc[idx_running][
+    return {'walk': walk, 'threshold_best': None if idx_best is None else df_best.iloc[idx_best]['threshold']
+        , 'error_best': None if idx_best is None else df_best.iloc[idx_best]['error_diff_avg']
+        , 'no_improvements_best': None if idx_best is None else df_best.iloc[idx_best]['positive_count']
+        , 'ratio_best': None if idx_best is None else df_best.iloc[idx_best]['positive_count'] / df_best.iloc[idx_best]['removed_count']
+        , 'threshold_worst': None if idx_worst is None else df_worst.iloc[idx_worst]['threshold']
+        , 'error_worst': None if idx_worst is None else df_worst.iloc[idx_worst]['error_diff_avg']
+        , 'no_improvements_worst': None if idx_worst is None else df_worst.iloc[idx_best]['positive_count']
+        , 'ratio_worst': None if idx_worst is None else df_worst.iloc[idx_best]['positive_count'] / df_worst.iloc[idx_best]['removed_count']
+        , 'threshold_running': None if idx_running is None else df_running.iloc[idx_running]['threshold']
+        , 'error_running': None if idx_running is None else df_running.iloc[idx_running]['error_diff_avg']
+        , 'no_improvements_running': None if idx_running is None else df_running.iloc[idx_running]['positive_count']
+        , 'ratio_running': None if idx_running is None else df_running.iloc[idx_running]['positive_count'] / df_running.iloc[idx_running][
             'removed_count']
             }
 
 
 def get_optimal_threshold_strategy(metrics_df):
-    th_index = np.nanargmax(metrics_df['error_diff_avg'].values)
-    return th_index
+    try:
+        if metrics_df.empty:
+            return None
+        th_index = np.nanargmax(metrics_df['error_diff_avg'].values)
+        return th_index
+    except ValueError:
+        return None
 
 
 class Threshold:
