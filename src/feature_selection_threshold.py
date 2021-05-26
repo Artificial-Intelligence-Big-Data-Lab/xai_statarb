@@ -111,7 +111,7 @@ def get_errors_df_by_walk_3(metrics_df, thresholds, walk, metric='MSE', worst=Fa
 
         intermediate['threshold'] = th
         intermediate['index'] = idx
-        errors = pd.concat([errors, intermediate])
+        errors = pd.concat([errors, intermediate], sort=False)
     return errors
 
 

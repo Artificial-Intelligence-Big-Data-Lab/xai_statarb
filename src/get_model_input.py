@@ -131,8 +131,10 @@ class CompanyFeatures:
             print('{0} test {1} {2}'.format(ticker, X_cr_validation.index.min(), X_cr_validation.index.max()))
             print('{0} test {1} {2}'.format(ticker, X_cr_test.index.min(), X_cr_test.index.max()))
 
-        x_train, y_train, x_validation, y_validation, x_test, y_test = self.__sanitize_data(x_train, y_train, x_validation, y_validation,
-                                                                                            x_test, y_test)
+        if not (x_train.empty and x_validation.empty and x_test.empty) and (len(constituents_batch['Ticker'].values) > 1):
+            x_train, y_train, x_validation, y_validation, x_test, y_test = self.__sanitize_data(x_train, y_train,
+                                                                                                x_validation, y_validation,
+                                                                                                x_test, y_test)
         print('{0} train {1}'.format(x_train.index.min(), x_train.index.max()))
         print('{0} test {1}'.format(x_validation.index.min(), x_validation.index.max()))
         print('{0} test {1}'.format(x_test.index.min(), x_test.index.max()))
@@ -145,8 +147,13 @@ class CompanyFeatures:
             return pd.DataFrame()
         if self.__feature_type == 'cr':
             feature_df = get_cumulative_returns(data)
-        elif self.__feature_type == 'lr':
-            feature_df = get_cumulative_returns(data)
+        elif 'cr' in self.__feature_type and 'ti' in self.__feature_type:
+            feature_df1 = get_cumulative_returns(data)
+            feature_df2 = get_technical_indicators(data)
+            if feature_df1.empty or feature_df2.empty:
+                feature_df = pd.DataFrame()
+            else:
+                feature_df = pd.concat([feature_df1, feature_df2], axis=1, sort=False)
         else:
             feature_df = get_technical_indicators(data)
 

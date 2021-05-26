@@ -20,7 +20,7 @@ def main(args):
     constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
     # constituents = constituents.groupby(by=['Sector']).nth(set(range(0, 10, 1))).reset_index()
     # constituents = constituents[constituents['Sector'].isin(['Communication Services'])]
-    constituents = constituents.iloc[:20]
+    # constituents = constituents[constituents['Ticker']=='ABBV']
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
     #     '0001.HK', '0003.HK']
@@ -78,7 +78,8 @@ def main(args):
 
             metric_single_baseline = get_prediction_performance_results(b_y_validation, False)
             metrics_baseline = add_metrics_information(metric_single_baseline, context, score)
-
+            end_time = time.perf_counter()
+            print_info('{0} training took {1} s'.format(ticker, end_time - start_time))
             metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
 
             for method, transformer in {args.method: methods[args.method]}.items():
@@ -124,7 +125,7 @@ def main(args):
             X_cr_train, y_cr_train, X_cr_validation, y_cr_validation, X_cr_test, y_cr_test = company_feature_builder.get_features(
                 constituents_batch=constituents_batch, walk=walk)
 
-            if len(X_cr_train) == 0 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
+            if len(X_cr_train) < 252 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
 
             baseline, b_y_validation, b_y_test, score = get_fit_regressor(X_cr_train, y_cr_train,
@@ -193,17 +194,17 @@ if __name__ == "__main__":
 
     parser.add_argument('--prediction_type',
                         choices=['company', 'sector'],
-                        default='company',
+                        default='sector',
                         type=str)
 
     parser.add_argument('--data_type',
-                        choices=['cr', 'lr', 'ti'],
-                        default='cr',
+                        choices=['cr', 'cr_ti', 'ti'],
+                        default='cr_ti',
                         type=str)
 
     parser.add_argument('--start_date',
                         help='Start date "%Y-%m-%d" format',
-                        default='2011-01-01',
+                        default='2003-01-01',
                         type=str)
     parser.add_argument('--end_date',
                         help='End date "%Y-%m-%d" format',
@@ -235,11 +236,11 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--num_rounds',
                         help='Number of permutation rounds',
-                        default=50,
+                        default=51,
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=45,
+                        default=48,
                         type=int)
     args_in = parser.parse_args()
 

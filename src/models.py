@@ -52,34 +52,38 @@ company_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_le
                                 )
 
 sector_model_parameters = dict(rf=dict(cr=dict(n_estimators=300, bootstrap=True, max_samples=0.5, max_features='sqrt'),
-                                       ti=dict(n_estimators=100, max_depth=40, bootstrap=True, max_samples=0.7, max_features='sqrt')),
+                                       ti=dict(n_estimators=100, max_depth=40, bootstrap=True, max_samples=0.7, max_features='sqrt'),
+                                       cr_ti=dict(n_estimators=150, bootstrap=True, max_samples=0.7, max_features=1, max_depth=60)
+                                       ),
                                svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
                                         ti=dict(max_iter=1e6, C=2, tol=1e-5, epsilon=0.025, gamma='scale'),
                                         # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
+                                        cr_ti=dict(max_iter=1e6, C=2, tol=1e-4, epsilon=0.05, gamma='scale')
                                         ),
-                               lgb=dict(
-                                   ti=dict(
-                                       # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
-                                       # colsample_bytree=.7, subsample=.2, objective='fair'
-                                       # n_estimators=200, num_leaves=63, colsample_bytree=1,
-                                       # learning_rate=0.05, subsample=0.3, max_depth=8,
-                                       # objective='fair'
-                                       # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
-                                       # colsample_bytree=.7, subsample=.2, objective='fair'
-                                       # n_estimators=200, num_leaves=63, colsample_bytree=1,
-                                       # learning_rate=0.05, subsample=0.3, max_depth=8,
-                                       # objective='fair'
-                                       # n_estimators=150, num_leaves=63, colsample_bytree=0.4,
-                                       # learning_rate=0.05, subsample=0.3,
-                                       # objective='fair'
-                                       n_estimators=100, num_leaves=100, colsample_bytree=0.8, max_depth=15,
-                                       learning_rate=0.03, subsample=0.8,
+                               lgb=dict(ti=dict(
+                                   # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
+                                   # colsample_bytree=.7, subsample=.2, objective='fair'
+                                   # n_estimators=200, num_leaves=63, colsample_bytree=1,
+                                   # learning_rate=0.05, subsample=0.3, max_depth=8,
+                                   # objective='fair'
+                                   # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
+                                   # colsample_bytree=.7, subsample=.2, objective='fair'
+                                   # n_estimators=200, num_leaves=63, colsample_bytree=1,
+                                   # learning_rate=0.05, subsample=0.3, max_depth=8,
+                                   # objective='fair'
+                                   # n_estimators=150, num_leaves=63, colsample_bytree=0.4,
+                                   # learning_rate=0.05, subsample=0.3,
+                                   # objective='fair'
+                                   n_estimators=100, num_leaves=100, colsample_bytree=0.8, max_depth=15,
+                                   learning_rate=0.03, subsample=0.8,
 
-                                   ),
+                               ),
                                    cr=dict(
                                        num_leaves=230, n_estimators=250, learning_rate=67e-3,
                                        max_depth=12, colsample_bytree=.9, objective='fair'
-                                   )
+                                   ),
+                                   cr_ti=dict(num_leaves=100, n_estimators=150, learning_rate=0.09, feature_fraction=0.75, subsample=.5,
+                                              objective='fair', bagging_seed=42, )
                                )
                                )
 
@@ -90,19 +94,19 @@ def get_model(model_type, data_type, prediction_type):
     else:
         model_parameters = sector_model_parameters
     model_dict = dict(rf=Pipeline([
-                            ('scale', MinMaxScaler(feature_range=(-1, 1))),
-                            ('regressor', RandomForestRegressor(**model_parameters['rf'][data_type], random_state=42, n_jobs=-1))
-                            ]),
-                      svr=Pipeline([
-                          ('scale', MinMaxScaler(feature_range=(-1, 1))),
-                          ('regressor', svm.SVR(**model_parameters['svr'][data_type]))
-                      ]),
-                      lgb=Pipeline([
-                          ('scale', MinMaxScaler(feature_range=(-1, 1))),
-                          ('regressor',
-                           lgb.LGBMRegressor(**model_parameters['lgb'][data_type], random_state=42, n_jobs=-1))
-                      ])
-                      )
+        ('scale', MinMaxScaler(feature_range=(-1, 1))),
+        ('regressor', RandomForestRegressor(**model_parameters['rf'][data_type], random_state=42, n_jobs=-1))
+    ]),
+        svr=Pipeline([
+            ('scale', MinMaxScaler(feature_range=(-1, 1))),
+            ('regressor', svm.SVR(**model_parameters['svr'][data_type]))
+        ]),
+        lgb=Pipeline([
+            ('scale', MinMaxScaler(feature_range=(-1, 1))),
+            ('regressor',
+             lgb.LGBMRegressor(**model_parameters['lgb'][data_type], random_state=42, n_jobs=-1))
+        ])
+    )
     if model_type not in model_dict.keys():
         raise ValueError("Model not found in list")
     return model_dict[model_type]
@@ -111,7 +115,7 @@ def get_model(model_type, data_type, prediction_type):
 def get_fit_regressor(x_train, y_cr_train, x_validation, y_validation, x_test, y_cr_test, data_type='cr',
                       model_type='rf', prediction_type='company', context=None,
                       columns=None,
-                      get_cross_validation_results=True, suffix=None):
+                      get_cross_validation_results=False, suffix=None):
     if columns is not None:
         X_train, y_train = x_train[columns].copy(), y_cr_train.copy()
         X_validation, y_validation = x_validation[columns].copy(), y_validation.copy()
