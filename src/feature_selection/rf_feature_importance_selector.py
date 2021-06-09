@@ -1,5 +1,6 @@
-from .feature_selector_base import *
 import numpy as np
+
+from .feature_selector_base import *
 
 
 class RFFeatureImportanceSelector(FeatureSelectorBase):
@@ -8,11 +9,11 @@ class RFFeatureImportanceSelector(FeatureSelectorBase):
         super(RFFeatureImportanceSelector, self).__init__(k=k, selector=selector)
 
     def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
-                      y_test: pd.DataFrame):
+                      y_test: pd.DataFrame, k=1):
         print('*' * 20, 'feature importance', '*' * 20)
         permutation_importance_s = self.__compute_feature_importance(x_test, y_test, estimator)
-        for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns,
-                                                                                      permutation_importance_s):
+        for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns, permutation_importance_s,
+                                                                                      k=k):
             yield idx, min_row, columns, selection_error
 
     def __compute_feature_importance(self, x_test, y_test, estimator):
@@ -23,7 +24,7 @@ class RFFeatureImportanceSelector(FeatureSelectorBase):
         result = pd.DataFrame(
             {'features': all_columns, "feature_importance": estimator.feature_importances_})
 
-        all_importance_values = [tree.feature_importances_ for i, tree in enumerate(estimator.estimators_)];
+        all_importance_values = [tree.feature_importances_ for i, tree in enumerate(estimator.estimators_)]
         res = pd.DataFrame(data=all_importance_values, columns=x_test.columns,
                            index=range(0, len(estimator.estimators_)))
 

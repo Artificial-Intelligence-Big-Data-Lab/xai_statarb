@@ -50,7 +50,7 @@ def check_if_processed(metrics, ticker, walk):
     return len(metrics[(metrics['ticker'] == ticker) & (metrics['walk'] == walk)]) == 4
 
 
-def add_metrics_information(metric_original: pd.Series, context: dict, score, importance_series: pd.Series = None,
+def add_metrics_information(metric_original: pd.Series, context: dict, score, importance_series: pd.DataFrame = None,
                             copy_to=None):
     method_suffix = "_baseline" if context['method'] == 'baseline' else "_pi"
 
@@ -85,9 +85,9 @@ def add_metrics_information(metric_original: pd.Series, context: dict, score, im
         metric_series['removed_std_error'] = ''
         metric_series['removed_column'] = ''
 
-    if importance_series is not None and len(importance_series) != 0:
+    if importance_series is not None and len(importance_series) != 0 and not importance_series.empty:
+        missing_col = importance_series.iloc[0]
         metric_series['index'] = context["index"]
-        missing_col = pd.Series(importance_series)
         metric_series['removed_column'] = missing_col['index']
         metric_series['removed_CI'] = missing_col['ci_fixed']
         metric_series['removed_FI'] = missing_col['feature_importance']
@@ -113,6 +113,16 @@ def add_score_to_metrics(score, method_suffix=''):
     return metric_series.to_dict()
 
 
+def add_removed_columns(removed_columns_df, importance_series, context):
+    to_copy_df = importance_series.copy()
+    to_copy_df['walk'] = context['walk']
+    to_copy_df['ticker'] = context['ticker']
+    to_copy_df['batch'] = context["index"]
+    to_copy_df['model'] = context["method"]
+    removed_columns_df = removed_columns_df.append(to_copy_df)
+    return removed_columns_df
+
+
 def add_context_information(metric_series: pd.Series, context: dict, score, importance_series: pd.Series = None,
                             baseline_loss=None):
     metric_series = metric_series.append(pd.Series(add_score_to_metrics(score)))
@@ -134,18 +144,18 @@ def add_context_information(metric_series: pd.Series, context: dict, score, impo
     elif importance_series is not None and len(importance_series) != 0:
 
         missing_columns = pd.DataFrame()
-        missing_col = pd.Series(importance_series)
-        r_idx = context["index"]
-        missing_col_dict = dict(walk=context['walk'], method=context['method'], ticker=context['ticker']
-                                , removed_column=missing_col['index']
-                                , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed']
-                                , error=missing_col['errors']
-                                , baseline_error=baseline_loss
-                                , std_err=missing_col['std_errors']
-                                , success_count=missing_col['success_count']
-                                , index=context["index"]
-                                )
-        missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
+        # missing_col = pd.Series(importance_series)
+        # r_idx = context["index"]
+        # missing_col_dict = dict(walk=context['walk'], method=context['method'], ticker=context['ticker']
+        #                         , removed_column=missing_col['index']
+        #                         , feature_importance=missing_col['feature_importance'], CI=missing_col['ci_fixed']
+        #                         , error=missing_col['errors']
+        #                         , baseline_error=baseline_loss
+        #                         , std_err=missing_col['std_errors']
+        #                         , success_count=missing_col['success_count']
+        #                         , index=context["index"]
+        #                         )
+        # missing_columns = missing_columns.append(missing_col_dict, ignore_index=True)
 
         # metric_series['removed_column{0}'.format(r_idx)] = missing_col['index']
         # metric_series['removed_column_imp{0}'.format(r_idx)] = missing_col['feature_importance']

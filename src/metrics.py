@@ -111,7 +111,7 @@ class SelectedColumns:
         return self.__df
 
     def set_chosen_features(self, ticker, walk_idx: int, method: str, columns: []):
-        if not columns:
+        if len(columns) < 1:
             raise ValueError('At least one column must be selected')
         if self.__feature_columns is None:
             raise ValueError('The feature names is not set')
@@ -120,12 +120,18 @@ class SelectedColumns:
         data_row.update(dict([(col, True) for col in columns]))
         self.__df = self.__df.append(data_row, ignore_index=True)
 
-    def get_columns(self, df: pd.DataFrame, ticker, method):
+    def get_columns(self, df: pd.DataFrame, removed_columns_df: pd.DataFrame, ticker, method):
         if df.empty:
             return self.__feature_columns
 
-        removed_column = df[(df['ticker'] == ticker) & (df['method'] == method)]['removed_column'].values[:self.__removed_feature_no]
-        if removed_column is None:
+        removed_column_index = df[(df['ticker'] == ticker) & (df['method'] == method)]['removed_index'].values[0]
+        if np.isnan(removed_column_index):
+            return self.__feature_columns
+
+        removed_column = \
+            removed_columns_df[(removed_columns_df['batch'] == removed_column_index) & (removed_columns_df['ticker'] == ticker)][
+                'index'].values[:self.__removed_feature_no]
+        if removed_column is None or len(removed_column) == 0:
             return self.__feature_columns
         else:
             chosen_columns = [col for col in self.__feature_columns if col not in removed_column]

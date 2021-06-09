@@ -10,7 +10,7 @@ from metrics import MetricsSaver, SelectedColumns
 from models import get_fit_regressor
 from statarbregression import *
 from utils import get_prediction_performance_results, add_metrics_information, add_context_information, \
-    init_prediction_df
+    init_prediction_df, add_removed_columns
 from walkforward import WalkForward
 
 BASE_PATH = '../LIME/'
@@ -19,7 +19,7 @@ BASE_PATH = '../LIME/'
 def main(args):
     constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
     # constituents = constituents.groupby(by=['Sector']).nth(set(range(0, 10, 1))).reset_index()
-    # constituents = constituents[constituents['Sector'].isin(['Communication Services'])]
+    constituents = constituents[constituents['Sector'].isin(['Communication Services'])]
     # constituents = constituents[constituents['Ticker']=='ABBV']
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
@@ -28,6 +28,7 @@ def main(args):
     random.seed(30)
 
     all_metrics_output_path = BASE_PATH + '{0}/LOOC_metrics_cr_all.csv'.format(args.test_no)
+    removed_columns_output_path = BASE_PATH + '{0}/LOOC_removed_columns_all.csv'.format(args.test_no)
 
     env = Environment(tickers=constituents['Ticker'], sectors=constituents['Sector'].unique(), args=args)
 
@@ -40,6 +41,8 @@ def main(args):
 
     methods = get_methods(args)
     metrics_all = pd.DataFrame()
+    removed_columns_df = pd.DataFrame()
+
     company_feature_builder = CompanyFeatures(constituents=constituents, folder_output=env.test_folder,
                                               feature_type=args.data_type, prediction_type=args.prediction_type)
     chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no), removed_feature_no=args.no_features)
@@ -63,7 +66,7 @@ def main(args):
             if len(X_cr_train) < 252 or len(X_cr_validation) == 0 or len(X_cr_test) == 0:
                 continue
 
-            chosen_columns.all_columns = X_cr_train.columns
+            chosen_columns.all_columns = X_cr_train.columns.values
 
             context = dict(walk=idx, ticker=ticker, method='baseline', start=walk.train.start, end=walk.train.end,
                            all_columns=X_cr_validation.columns)
@@ -86,7 +89,8 @@ def main(args):
                 for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
                                                                                                y_cr_train,
                                                                                                X_cr_validation,
-                                                                                               y_cr_validation):
+                                                                                               y_cr_validation,
+                                                                                               k=args.no_features):
                     looc_fi_regressor, looc_y_validation, looc_y_test, score_looc = get_fit_regressor(X_cr_train,
                                                                                                       y_cr_train,
                                                                                                       x_validation=X_cr_validation,
@@ -109,6 +113,8 @@ def main(args):
                                                    baseline_loss=transformer.baseline_loss)
 
                     metrics_all = metrics_all.append(pd.DataFrame(merged_series).T, ignore_index=True)
+                    removed_columns_df = add_removed_columns(removed_columns_df, importance, context)
+                    removed_columns_df.to_csv(removed_columns_output_path, index=False)
                     metrics_all.to_csv(all_metrics_output_path, index=False)
 
             end_time = time.perf_counter()
@@ -141,7 +147,8 @@ def main(args):
             validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation, args.prediction_type)
 
             for th_label in thresholds_labels:
-                columns = chosen_columns.get_columns(dfs[th_label], ticker, method=th_label)
+                columns = chosen_columns.get_columns(dfs[th_label], removed_columns_df[removed_columns_df.walk == idx], ticker,
+                                                     method=th_label)
                 chosen_columns.set_chosen_features(ticker=ticker, walk_idx=walk.train.idx, method=th_label, columns=columns)
 
                 looc_fi_regressor, looc_y_validation, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train,
@@ -194,12 +201,12 @@ if __name__ == "__main__":
 
     parser.add_argument('--prediction_type',
                         choices=['company', 'sector'],
-                        default='sector',
+                        default='company',
                         type=str)
 
     parser.add_argument('--data_type',
                         choices=['cr', 'cr_ti', 'ti'],
-                        default='cr_ti',
+                        default='cr',
                         type=str)
 
     parser.add_argument('--start_date',
@@ -216,7 +223,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--no_features',
                         help='Number of features to remove',
-                        default=1,
+                        default=2,
                         type=int)
     parser.add_argument('--train_length',
                         help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
@@ -236,7 +243,7 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--num_rounds',
                         help='Number of permutation rounds',
-                        default=51,
+                        default=50,
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',

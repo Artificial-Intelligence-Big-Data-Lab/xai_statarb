@@ -7,10 +7,15 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 
 company_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_leaf=5, max_features=1, oob_score=True),
+                                        cr_ti=dict(n_estimators=120, max_features=0.5, max_depth=20, oob_score=True, bootstrap=True,
+                                                   criterion='mse'),
                                         ti=dict(n_estimators=150, max_depth=12, max_features=1, oob_score=True)),
-                                svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
+                                svr=dict(cr=dict(max_iter=1e6, C=10, tol=1e-5, epsilon=1e-5, gamma=9e-3
+                                                 # max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002
+                                                 ),
                                          ti=dict(max_iter=1e6, C=0.5, tol=1e-4, gamma='scale', epsilon=1e-3),
                                          # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
+                                         cr_ti=dict(max_iter=1e6, C=50, tol=5e-3, epsilon=1e-4, gamma=3e-3)
                                          ),
                                 lgb=dict(ti=dict(
                                     # n_estimators=1000, n_jobs=-1, max_depth=10
@@ -47,7 +52,9 @@ company_model_parameters = dict(rf=dict(cr=dict(n_estimators=500, min_samples_le
 
                                         bagging_fraction=.65, num_leaves=252, n_estimators=220, learning_rate=4e-2,
                                         max_depth=7, reg_alpha=9e-4
-                                    )
+                                    ),
+                                    cr_ti=dict(n_estimators=250, learning_rate=0.09, reg_lambda=1e-2, max_depth=7, reg_alpha=1e-3,
+                                               feature_fraction=0.3, subsample=.3, objective='fair', bagging_seed=42, )
                                 )
                                 )
 
@@ -55,11 +62,13 @@ sector_model_parameters = dict(rf=dict(cr=dict(n_estimators=300, bootstrap=True,
                                        ti=dict(n_estimators=100, max_depth=40, bootstrap=True, max_samples=0.7, max_features='sqrt'),
                                        cr_ti=dict(n_estimators=150, bootstrap=True, max_samples=0.7, max_features=1, max_depth=60)
                                        ),
-                               svr=dict(cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002),
-                                        ti=dict(max_iter=1e6, C=2, tol=1e-5, epsilon=0.025, gamma='scale'),
-                                        # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
-                                        cr_ti=dict(max_iter=1e6, C=2, tol=1e-4, epsilon=0.05, gamma='scale')
-                                        ),
+                               svr=dict(
+                                   # cr=dict(max_iter=1e6, C=0.005, tol=1e-3, epsilon=0.002, gamma='scale'),
+                                   cr=dict(max_iter=1e6, C=2, tol=1e-4, epsilon=1e-4, gamma='scale'),
+                                   ti=dict(max_iter=1e6, C=2, tol=1e-5, epsilon=0.025, gamma='scale'),
+                                   # ti=dict(max_iter=1e6, C=0.2, tol=1e-3, gamma='scale', epsilon=1e-4)))
+                                   cr_ti=dict(max_iter=1e6, C=2, tol=1e-4, epsilon=0.05, gamma='scale')
+                               ),
                                lgb=dict(ti=dict(
                                    # num_leaves=230, n_estimators=150, learning_rate=6e-2, max_depth=20,
                                    # colsample_bytree=.7, subsample=.2, objective='fair'
