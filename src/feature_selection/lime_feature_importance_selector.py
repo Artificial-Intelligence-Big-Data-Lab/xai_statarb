@@ -20,15 +20,14 @@ class LIMEFeatureImportanceSelector(FeatureSelectorBase):
         v_selector = SelectKWorst(1, threshold=1000) if selector is None else selector
         super(LIMEFeatureImportanceSelector, self).__init__(k=1, selector=v_selector)
 
-    def fit_transform(self, estimator, x_train, y_train, x_test, y_test):
+    def fit_transform(self, estimator, x_train, y_train, x_test, y_test, k=[1]):
         # ####***************LIME feature importance***********************
         print('*' * 20, 'LIME feature importance', '*' * 20)
         permutation_importance_s = self.__compute_lime_importance(x_train, y_train, x_test, y_test, estimator)
-        for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns,
-                                                                                      permutation_importance_s):
-            yield idx, min_row, columns, selection_error
+        for idx, k, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns, permutation_importance_s, ks=k):
+            yield idx, k, min_row, columns, selection_error
 
-    def __compute_lime_importance(self, x_train, y_train, x_test,y_test,estimator):
+    def __compute_lime_importance(self, x_train, y_train, x_test, y_test, estimator):
 
         lime_explainer = lime.lime_tabular.LimeTabularExplainer(x_train.values,
                                                                 training_labels=y_train.values,

@@ -84,6 +84,7 @@ def add_metrics_information(metric_original: pd.Series, context: dict, score, im
         metric_series['removed_error'] = ''
         metric_series['removed_std_error'] = ''
         metric_series['removed_column'] = ''
+        metric_series['k'] = context['k']
 
     if importance_series is not None and len(importance_series) != 0 and not importance_series.empty:
         missing_col = importance_series.iloc[0]
@@ -119,6 +120,7 @@ def add_removed_columns(removed_columns_df, importance_series, context):
     to_copy_df['ticker'] = context['ticker']
     to_copy_df['batch'] = context["index"]
     to_copy_df['model'] = context["method"]
+    to_copy_df['k'] = context['k']
     removed_columns_df = removed_columns_df.append(to_copy_df)
     return removed_columns_df
 
@@ -140,6 +142,7 @@ def add_context_information(metric_series: pd.Series, context: dict, score, impo
         #     metric_series['removed_column{0}'.format(r_idx)] = ''
         #     metric_series['removed_column_imp{0}'.format(r_idx)] = ''
         metric_series['index'] = ''
+        metric_series['k'] = ''
         return metric_series, None
     elif importance_series is not None and len(importance_series) != 0:
 
@@ -161,6 +164,7 @@ def add_context_information(metric_series: pd.Series, context: dict, score, impo
         # metric_series['removed_column_imp{0}'.format(r_idx)] = missing_col['feature_importance']
         # metric_series['{0}_count'.format(missing_col['index'])] = missing_col['success_count']
         metric_series['index'] = context["index"]
+        metric_series['k'] = context['k']
         return metric_series, missing_columns
     else:
         return metric_series, pd.DataFrame()

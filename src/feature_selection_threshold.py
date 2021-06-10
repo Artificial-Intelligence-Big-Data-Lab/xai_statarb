@@ -7,53 +7,54 @@ threshold_columns = {'walk', 'threshold_best', 'error_best', 'no_improvements_be
 thresholds_labels = ['best', 'worst', 'running']
 
 
-def get_is_lower(x, th):
-    y = th[th['walk'] == x.walk]['value'].values[0]
+def get_is_lower(x, th, k):
+    y = th[(th['walk'] == x.walk) & (th['k'] == k)]['value'].values[0]
     return x['removed_FI'] <= y
 
 
-def get_error(x, th, error_label='MSE'):
-    y = th[th['walk'] == x.walk]['value'].values[0]
+def get_error(x, th, k, error_label='MSE'):
+    y = th[(th['walk'] == x.walk) & (th['k'] == k)]['value'].values[0]
     label_pi = "{0}_pi".format(error_label)
     baseline_pi = "{0}_baseline".format(error_label)
     return x[label_pi] if x['removed_FI'] <= y else x[baseline_pi]
 
 
-def get_column(x, th):
-    y = th[th['walk'] == x.walk]['value'].values[0]
-    return x['removed_column'] if x['removed_FI'] <= y else None
+def get_column(x, th, k):
+    y = th[(th['walk'] == x.walk) & (th['k'] == k)]['value'].values[0]
+    return x['index'] if x['removed_FI'] <= y else None
 
 
-def get_metrics(metrics, thresholds, label='worst', error_label='MSE'):
+def get_metrics(metrics, thresholds, label='worst', error_label='MSE', k=3):
     th = pd.DataFrame()
     th['walk'] = thresholds['walk']
+    th['k'] = thresholds['k']
     th['value'] = thresholds['threshold_{0}'.format(label)]
 
     if label != 'running':
         worst = label == 'worst'
         indexes = metrics.sort_values(['walk', 'ticker', 'removed_FI'], ascending=[True, True, worst]) \
-            .groupby(by=['walk', 'ticker'], as_index=False).nth(0)[['walk', 'ticker', 'removed_FI', 'removed_column']]
+            .groupby(by=['walk', 'ticker'], as_index=False).nth(0)[['walk', 'ticker', 'removed_FI', 'removed_column', 'index']]
         indexes.dropna(inplace=True)
         test_df = metrics[metrics.index.isin(indexes.index)]
     else:
         test_df = metrics.copy()
-        test_df['is_lower'] = metrics.apply(lambda x: get_is_lower(x, th), axis=1)
+        test_df['is_lower'] = metrics.apply(lambda x: get_is_lower(x, th, k), axis=1)
         test_df = test_df[test_df['is_lower']].sort_values(['walk', 'ticker', 'removed_FI'], ascending=[True, True, False]) \
             .groupby(by=['walk', 'ticker'], as_index=False).nth(0)
         all_companies = metrics.groupby(by=['walk', 'ticker'], as_index=False).nth(0)
         df3 = all_companies.merge(test_df, left_on=['walk', 'ticker'], right_on=['walk', 'ticker'], how='left',
                                   suffixes=('_all', '_selected'))
         df3 = df3[['walk', 'ticker', 'MSE_baseline_all', 'MSE_baseline_selected', 'MSE_pi_selected', 'MSE_pi_all',
-                   'removed_column_selected', 'removed_FI_selected', 'is_lower']]
+                   'removed_column_selected', 'removed_FI_selected', 'is_lower', 'index_selected']]
         df3.rename(inplace=True, columns={'MSE_baseline_all': 'MSE_baseline', 'MSE_pi_selected': 'MSE_pi',
                                           'removed_column_selected': 'removed_column',
-                                          'removed_FI_selected': 'removed_FI'})
+                                          'removed_FI_selected': 'removed_FI', 'index_selected': 'index'})
         test_df = df3.copy()
 
     df1 = test_df.copy()
 
-    df1['{0}'.format(error_label)] = test_df.apply(lambda x: get_error(x, th, error_label='MSE'), axis=1)
-    df1['removed_column'] = test_df.apply(lambda x: get_column(x, th), axis=1)
+    df1['{0}'.format(error_label)] = test_df.apply(lambda x: get_error(x, th, error_label='MSE', k=k), axis=1)
+    df1['removed_index'] = test_df.apply(lambda x: get_column(x, th, k=k), axis=1)
     df1['method'] = label
     return df1
 
@@ -115,14 +116,14 @@ def get_errors_df_by_walk_3(metrics_df, thresholds, walk, metric='MSE', worst=Fa
     return errors
 
 
-def get_optimal_threshold(metrics_all, walk, labels):
+def get_optimal_threshold(metrics_all, walk, k, labels):
     df_worst = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), walk, worst=True)
     df_best = get_errors_df_by_walk_5(metrics_all, np.arange(0.0, -0.03, -0.0001), walk, worst=False)
     df_running = get_errors_df_by_walk_3(metrics_all, np.arange(0.0, -0.03, -0.0001), walk, worst=False)
     idx_worst = get_optimal_threshold_strategy(df_worst)
     idx_best = get_optimal_threshold_strategy(df_best)
     idx_running = get_optimal_threshold_strategy(df_running)
-    return {'walk': walk, 'threshold_best': None if idx_best is None else df_best.iloc[idx_best]['threshold']
+    return {'walk': walk, 'k': k, 'threshold_best': None if idx_best is None else df_best.iloc[idx_best]['threshold']
         , 'error_best': None if idx_best is None else df_best.iloc[idx_best]['error_diff_avg']
         , 'no_improvements_best': None if idx_best is None else df_best.iloc[idx_best]['positive_count']
         , 'ratio_best': None if idx_best is None else df_best.iloc[idx_best]['positive_count'] / df_best.iloc[idx_best]['removed_count']
@@ -156,14 +157,18 @@ class Threshold:
         else:
             self.__thresholds_path = None
 
-    def get_thresholds(self, metrics_all: pd.DataFrame, idx: int):
+    def get_thresholds(self, metrics_all: pd.DataFrame, idx: int, ks=[3]):
         print('*' * 10 + 'START computing thresholds' + '*' * 10)
-        threshold_row = get_optimal_threshold(metrics_all[metrics_all.walk == idx], idx, thresholds_labels)
-        self.__thresholds = self.__thresholds.append(threshold_row, ignore_index=True)
-        if self.__thresholds_path is not None:
-            self.__thresholds.to_csv(self.__thresholds_path, index=False)
-        print('*' * 10 + 'END computing thresholds' + '*' * 10)
 
-        dfs = dict([(th_label, (get_metrics(metrics_all[metrics_all.walk == idx], self.__thresholds, th_label))) for th_label
-                    in thresholds_labels])
+        dfs = {}
+        for k in ks:
+            metrics = metrics_all[(metrics_all['walk'] == idx) & (metrics_all['k'] == k)]
+            threshold_row = get_optimal_threshold(metrics, idx, k, thresholds_labels)
+            self.__thresholds = self.__thresholds.append(threshold_row, ignore_index=True)
+            if self.__thresholds_path is not None:
+                self.__thresholds.to_csv(self.__thresholds_path, index=False)
+            print('*' * 10 + ' END computing thresholds ' + str(k) + ' *' * 10)
+            dfs_interim = dict([(th_label, (get_metrics(metrics, self.__thresholds, th_label, k=k))) for th_label in thresholds_labels])
+
+            dfs.update({k: dfs_interim})
         return dfs

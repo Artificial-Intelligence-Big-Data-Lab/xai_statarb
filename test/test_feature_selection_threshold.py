@@ -17,10 +17,11 @@ class FeatureSelectionThresholdTest(TestCase):
 
 class TestThreshold(TestCase):
     def setUp(self) -> None:
-        self.metrics = pd.read_csv('../LIME/43/LOOC_metrics_cr_all.csv', parse_dates=True)
+        self.metrics = pd.read_csv('../LIME/49/LOOC_metrics_cr_all.csv', parse_dates=True)
 
     def test_get_thresholds(self):
         sut = Threshold()
-        mock = sut.get_thresholds(self.metrics, 1)
+        ks = [3, 5, 7]
+        mock = sut.get_thresholds(self.metrics, 1, ks=ks)
         print(mock)
-        self.assertTrue(list(mock.keys()) == thresholds_labels)
+        self.assertTrue(list(mock.keys()) == ks)

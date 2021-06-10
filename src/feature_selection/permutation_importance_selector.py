@@ -1,8 +1,8 @@
+import numpy as np
 import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from .feature_selector_base import *
-import numpy as np
 
 
 class PISelectorBase(FeatureSelectorBase):
@@ -54,14 +54,13 @@ class PISelectorBase(FeatureSelectorBase):
         self._loss = score_func
 
     def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
-                      y_test: pd.DataFrame,k=1):
+                      y_test: pd.DataFrame, k=[1]):
         print('*' * 20, 'permutation importance', '*' * 20)
         self._original_loss = self._loss(y_test.values.ravel(), estimator.predict(x_test))
         permutation_importance_s = self.__compute_permutation_importance(x_test, y_test, estimator)
 
-        for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns, permutation_importance_s,
-                                                                                      k=k):
-            yield idx, min_row, columns, selection_error
+        for idx, k, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns, permutation_importance_s, ks=k):
+            yield idx, k, min_row, columns, selection_error
 
     def __compute_permutation_importance(self, x_test, y_test, estimator):
         res, res_error = self._feature_importance_permutation(estimator_fn=estimator.predict, x_test=x_test,

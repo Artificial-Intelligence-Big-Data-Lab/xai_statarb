@@ -29,6 +29,7 @@ class Environment:
                                  set(sectors) | set(tickers)]
 
         self.__setup_folders(self.__base_folder + '/{0}/'.format(args.test_no))
+        self.__no_features = args.no_features.split(sep=',')
         self.__walk = None
         self.prediction_params = {
             'train': args.train_length,
@@ -62,6 +63,10 @@ class Environment:
         my_file = Path(output_folder)
         if not my_file.exists():
             os.mkdir(output_folder)
+        for k in self.__no_features:
+            my_file = Path(output_folder + '/{0}/'.format(k))
+            if not my_file.exists():
+                os.mkdir(output_folder + '/{0}/'.format(k))
         return output_folder
 
     @staticmethod

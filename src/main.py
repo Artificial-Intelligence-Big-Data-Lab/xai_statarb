@@ -19,7 +19,7 @@ BASE_PATH = '../LIME/'
 def main(args):
     constituents = pd.read_csv(BASE_PATH + 'data/constituents_sp500.csv')
     # constituents = constituents.groupby(by=['Sector']).nth(set(range(0, 10, 1))).reset_index()
-    constituents = constituents[constituents['Sector'].isin(['Communication Services'])]
+    constituents = constituents[constituents['Sector'].isin(['Communication Services'])].iloc[:3]
     # constituents = constituents[constituents['Ticker']=='ABBV']
     # tickers = set(tickers) | set(['ICE'])
     # tickers = ['UG.PA', 'CPG', 'FP.PA',
@@ -39,13 +39,15 @@ def main(args):
                      test_period_length=args.test_length,
                      no_walks=args.no_walks)
 
+    ks = [int(k) for k in args.no_features.split(sep=',')]
+
     methods = get_methods(args)
     metrics_all = pd.DataFrame()
     removed_columns_df = pd.DataFrame()
 
     company_feature_builder = CompanyFeatures(constituents=constituents, folder_output=env.test_folder,
                                               feature_type=args.data_type, prediction_type=args.prediction_type)
-    chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no), removed_feature_no=args.no_features)
+    chosen_columns = SelectedColumns(save_path=BASE_PATH + '{0}/'.format(args.test_no))
     metric_saver = MetricsSaver(labels=thresholds_labels)
     threshold_strategy = Threshold(thresholds_path=BASE_PATH + '{0}/'.format(args.test_no))
 
@@ -86,11 +88,8 @@ def main(args):
             metric_single_baseline, _ = add_context_information(metric_single_baseline, context, score)
 
             for method, transformer in {args.method: methods[args.method]}.items():
-                for col_idx, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train,
-                                                                                               y_cr_train,
-                                                                                               X_cr_validation,
-                                                                                               y_cr_validation,
-                                                                                               k=args.no_features):
+                for col_idx, k, importance, columns, selection_error in transformer.fit_transform(baseline, X_cr_train, y_cr_train,
+                                                                                                  X_cr_validation, y_cr_validation, k=ks):
                     looc_fi_regressor, looc_y_validation, looc_y_test, score_looc = get_fit_regressor(X_cr_train,
                                                                                                       y_cr_train,
                                                                                                       x_validation=X_cr_validation,
@@ -104,7 +103,7 @@ def main(args):
                                                                                                       get_cross_validation_results=False)
                     metrics_fi_looc = get_prediction_performance_results(looc_y_validation, False)
 
-                    context.update(dict(method=method, selection_error=selection_error, index=col_idx))
+                    context.update(dict(method=method, selection_error=selection_error, index=col_idx, k=k))
                     merged_series = metrics_baseline.copy()
                     merged_series = add_metrics_information(metrics_fi_looc, context, score_looc,
                                                             importance_series=importance, copy_to=merged_series)
@@ -120,7 +119,7 @@ def main(args):
             end_time = time.perf_counter()
             print_info('{0} took {1} s'.format(ticker, end_time - start_time))
 
-        dfs = threshold_strategy.get_thresholds(metrics_all, walk.train.idx)
+        dfs = threshold_strategy.get_thresholds(metrics_all, walk.train.idx, ks=ks)
 
         print_info('*' * 10 + 'START forecasting using optimal threshold' + '*' * 10)
         total_df = pd.DataFrame()
@@ -143,43 +142,50 @@ def main(args):
                                                                           prediction_type=args.prediction_type,
                                                                           get_cross_validation_results=False,
                                                                           suffix='_baseline')
-            predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test, args.prediction_type)
-            validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation, args.prediction_type)
+            baseline_predictions_df = init_prediction_df(ticker, X_cr_test, y_cr_test, b_y_test, args.prediction_type)
+            baseline_validation_predictions_df = init_prediction_df(ticker, X_cr_validation, y_cr_validation, b_y_validation,
+                                                                    args.prediction_type)
+            for k in ks:
+                predictions_df = baseline_predictions_df.copy()
+                predictions_df['k'] = k
+                validation_predictions_df = baseline_validation_predictions_df.copy()
+                validation_predictions_df['k'] = k
+                for th_label in thresholds_labels:
+                    columns = chosen_columns.get_columns(dfs[k][th_label], removed_columns_df[removed_columns_df.walk == idx], ticker,
+                                                         method=th_label, k=k)
+                    chosen_columns.set_chosen_features(ticker=ticker, walk_idx=walk.train.idx, k=k, method=th_label, columns=columns)
 
-            for th_label in thresholds_labels:
-                columns = chosen_columns.get_columns(dfs[th_label], removed_columns_df[removed_columns_df.walk == idx], ticker,
-                                                     method=th_label)
-                chosen_columns.set_chosen_features(ticker=ticker, walk_idx=walk.train.idx, method=th_label, columns=columns)
+                    looc_fi_regressor, looc_y_validation, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train,
+                                                                                                         y_cr_train,
+                                                                                                         x_validation=X_cr_validation,
+                                                                                                         y_validation=y_cr_validation,
+                                                                                                         x_test=X_cr_test,
+                                                                                                         y_cr_test=y_cr_test,
+                                                                                                         data_type=args.data_type,
+                                                                                                         model_type=args.model_type,
+                                                                                                         prediction_type=args.prediction_type,
+                                                                                                         columns=columns,
+                                                                                                         get_cross_validation_results=False,
+                                                                                                         suffix="_" + th_label)
 
-                looc_fi_regressor, looc_y_validation, looc_y_cr_test, score_looc = get_fit_regressor(X_cr_train,
-                                                                                                     y_cr_train,
-                                                                                                     x_validation=X_cr_validation,
-                                                                                                     y_validation=y_cr_validation,
-                                                                                                     x_test=X_cr_test,
-                                                                                                     y_cr_test=y_cr_test,
-                                                                                                     data_type=args.data_type,
-                                                                                                     model_type=args.model_type,
-                                                                                                     prediction_type=args.prediction_type,
-                                                                                                     columns=columns,
-                                                                                                     get_cross_validation_results=False,
-                                                                                                     suffix="_" + th_label)
+                    predictions_df = predictions_df.join(looc_y_cr_test)
+                    validation_predictions_df = validation_predictions_df.join(looc_y_validation)
 
-                predictions_df = predictions_df.join(looc_y_cr_test)
-                validation_predictions_df = validation_predictions_df.join(looc_y_validation)
-
-            if not predictions_df.empty and not validation_predictions_df.empty:
-                total_df = pd.concat([total_df, predictions_df], axis=0)
-                validation_total_df = pd.concat([validation_total_df, validation_predictions_df], axis=0)
-                metric_saver.set_metrics(ticker, idx, validation_predictions_df, predictions_df)
+                if not predictions_df.empty and not validation_predictions_df.empty:
+                    total_df = pd.concat([total_df, predictions_df], axis=0)
+                    validation_total_df = pd.concat([validation_total_df, validation_predictions_df], axis=0)
+                    metric_saver.set_metrics(ticker, idx, k, validation_predictions_df, predictions_df)
 
         chosen_columns.save()
         metric_saver.save(env.output_folder)
 
         print_info('*' * 10 + 'END forecasting using optimal threshold' + '*' * 10)
-        strategy1 = StatArbRegression(validation=validation_total_df, test=total_df, predicted_label='predicted', k=args.k,
-                                      prediction_type=args.prediction_type)
-        strategy1.generate_signals(output_folder=env.output_folder)
-        strategy1.plot_returns(output_folder=env.output_folder, parameters=env.prediction_params)
+        for k in ks:
+            strategy1 = StatArbRegression(validation=validation_total_df[validation_total_df['k'] == k], test=total_df[total_df['k'] == k],
+                                          predicted_label='predicted', k=args.k,
+                                          prediction_type=args.prediction_type)
+            strategy1.generate_signals(output_folder=env.output_folder + '/{0}/'.format(k))
+            strategy1.plot_returns(output_folder=env.output_folder + '/{0}/'.format(k), parameters=env.prediction_params)
 
     print('*' * 20, 'DONE', '*' * 20)
     metrics_all.to_csv(all_metrics_output_path, index=False)
@@ -223,8 +229,8 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--no_features',
                         help='Number of features to remove',
-                        default=2,
-                        type=int)
+                        default='3,5,7',
+                        type=str)
     parser.add_argument('--train_length',
                         help='Number of training data expressed in years (Y) or months (M). Default value 4Y ',
                         default='3Y',
@@ -243,11 +249,11 @@ if __name__ == "__main__":
                         type=int)
     parser.add_argument('--num_rounds',
                         help='Number of permutation rounds',
-                        default=50,
+                        default=5,
                         type=int)
     parser.add_argument('--test_no',
                         help='Test number to identify the experiments',
-                        default=48,
+                        default=49,
                         type=int)
     args_in = parser.parse_args()
 

@@ -9,11 +9,10 @@ class RFFeatureImportanceSelector(FeatureSelectorBase):
         super(RFFeatureImportanceSelector, self).__init__(k=k, selector=selector)
 
     def fit_transform(self, estimator, x_train: pd.DataFrame, y_train: pd.DataFrame, x_test: pd.DataFrame,
-                      y_test: pd.DataFrame, k=1):
+                      y_test: pd.DataFrame, k=[1]):
         print('*' * 20, 'feature importance', '*' * 20)
         permutation_importance_s = self.__compute_feature_importance(x_test, y_test, estimator)
-        for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns, permutation_importance_s,
-                                                                                      k=k):
+        for idx, min_row, columns, selection_error in self._selector.select_enumerate(x_test.columns, permutation_importance_s, ks=k):
             yield idx, min_row, columns, selection_error
 
     def __compute_feature_importance(self, x_test, y_test, estimator):
